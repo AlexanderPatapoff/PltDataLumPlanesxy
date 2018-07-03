@@ -25,15 +25,15 @@ public:
   void Write(){
     const char* tempName;
     switch (form) {
-      case PDF: tempName = (name + ".pdf").c_str(); break;
+      case PDF: tempName = (name + ".pdf").c_str(); cout << tempName << endl;break;
       case PNG: tempName = (name + ".png").c_str(); break;
       case TXT: tempName = (name + ".txt").c_str(); break;
     }
     file->WriteImage(tempName);
   };
 
-  
-  void finished(){
+
+  void Finish(){
     delete file;
   }
 

@@ -1,7 +1,11 @@
+#include "Classes.c"
 #include "Functions.c"
 
-void Entry(){
-  TFile *filein = new TFile("file:~/Downloads/scan.root","READ");
+
+void Init(string fileName){
+  string fileLocation = "file:~/Downloads/HEPP/" + fileName+".root";
+  TCanvasFileWriter * iobuffer = new TCanvasFileWriter(fileName);
+  TFile *filein = new TFile(fileLocation.c_str(),"READ");
   TTree *tree = (TTree*) filein->Get("vdMScanData;1");
   Int_t nentries = tree->GetEntries();
 
@@ -18,20 +22,24 @@ void Entry(){
   vector<vector<Float_t>>* collisionsA = SortCollisions(beamA, B1BCID);
   vector<vector<Float_t>>* collisionsB = SortCollisions(beamB, B2BCID);
 
-  GraphTotalAvgCollisions(beamA,beamB,collisionsA,collisionsB);
-
   TF1* fitX = GetXFit(beamA,beamB,collisionsA,collisionsB);
-  TF1* fitY = GetXFit(beamA,beamB,collisionsA,collisionsB);
+  TF1* fitY = GetYFit(beamA,beamB,collisionsA,collisionsB);
 
-  PlotBCIDs_Fit(beamB,beamA,collisionsA,collisionsB,fitX,fitY,B1BCID,B2BCID);
+  iobuffer->OpenFile();
+
+  PlotMeansXY(beamA,beamB,collisionsA,collisionsB,B1BCID,B2BCID,iobuffer);
+  PlotWidthXY(beamA,beamB,collisionsA,collisionsB,B1BCID,B2BCID,iobuffer);
+  //PlotFitsXY(beamA,beamB,collisionsA,collisionsB,B1BCID,B2BCID,iobuffer);
+  PlotChi2_DOG_XY(fitX,fitY,beamA,beamB,collisionsA,collisionsB,B1BCID,B2BCID,iobuffer);
+
+  iobuffer->CloseFile();
+};
 
 
+void Entry(){
 
-
-
-
-  const vector<vector<Float_t>> *PeaksX = GetPeaks()
-  const vector<vector<Float_t>> *PeaksY = getPeaksFromFits
+  Init("scan1806012201");
+  Init("scan1806021010");
 
 
 
