@@ -10,6 +10,15 @@ struct BeamData{
   int beamnumber;
   vector<Float_t> * lumData;
 };
+
+
+struct CollisionData{
+  const vector<vector<Int_t>>* BCID;
+  vector<vector<Float_t>>* LumData;
+  vector<vector<Float_t>>* Error;
+};
+
+
 void printBeam(BeamData * id){
 
   cout <<id->scanRun <<" " <<id->scanLumBlock << " "<<id->scanStep << " "<< id->plane<< " "<< id->planeCoord << endl;
@@ -126,9 +135,9 @@ vector<vector<Float_t>>* SortCollisions(vector<BeamData> *beam,const vector<vect
 };
 
 
-void GraphTotalAvgCollisions(vector<BeamData> *beamA,vector<BeamData> *beamB,vector<vector<Float_t>>* collisionsA,vector<vector<Float_t>>* collisionsB){
+void GraphTotalAvgCollisions(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData* collisionA, CollisionData* collisionB){
   cout <<"graphing total collisions" << endl;
-  size_t t = collisionsB->size()/2;
+  size_t t = collisionB->LumData->size()/2;
 
   Float_t x[t], y[t],zy[t],zx[t];
 
@@ -137,17 +146,17 @@ void GraphTotalAvgCollisions(vector<BeamData> *beamA,vector<BeamData> *beamB,vec
       y[i] = beamA->at(i).planeCoord-beamB->at(i).planeCoord;
 
 
-      for (size_t p = 0; p < collisionsA->at(i).size(); p++) {
-        zy[i] +=  collisionsA->at(i).at(p);
+      for (size_t p = 0; p < collisionB->LumData->at(i).size(); p++) {
+        zy[i] +=  collisionB->LumData->at(i).at(p);
 
       }
 
-      for (size_t s  = 0; s < collisionsB->at(i).size(); s++) {
+      for (size_t s  = 0; s < collisionB->LumData->at(i).size(); s++) {
 
-        zy[i] += collisionsB->at(i).at(s);
+        zy[i] += collisionB->LumData->at(i).at(s);
 
       }
-      zy[i] = zy[i]/(2*collisionsB->at(i).size());
+      zy[i] = zy[i]/(2*collisionB->LumData->at(i).size());
     }
 
 
@@ -157,16 +166,16 @@ void GraphTotalAvgCollisions(vector<BeamData> *beamA,vector<BeamData> *beamB,vec
       x[i-t] = beamA->at(i).planeCoord-beamB->at(i).planeCoord;
 
 
-      for (size_t p = 0; p < collisionsA->at(i).size(); p++) {
-        zx[i-t] += collisionsA->at(i).at(p);
+      for (size_t p = 0; p < collisionB->LumData->at(i).size(); p++) {
+        zx[i-t] += collisionB->LumData->at(i).at(p);
       }
 
 
 
-      for (size_t p = 0; p < collisionsB->at(i).size(); p++) {
-        zx[i-t] += collisionsB->at(i).at(p);
+      for (size_t p = 0; p < collisionB->LumData->at(i).size(); p++) {
+        zx[i-t] += collisionB->LumData->at(i).at(p);
       }
-      zx[i-t] = zx[i-t]/(2*collisionsB->at(i).size());
+      zx[i-t] = zx[i-t]/(2*collisionB->LumData->at(i).size());
     }
 
 
@@ -191,24 +200,24 @@ void GraphTotalAvgCollisions(vector<BeamData> *beamA,vector<BeamData> *beamB,vec
 
 };
 
-TF1* GetXFit(vector<BeamData> *beamA,vector<BeamData> *beamB,vector<vector<Float_t>>* collisionsA,vector<vector<Float_t>>* collisionsB){
-    size_t t = collisionsB->size()/2;
+TF1* GetXFit(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData* collisionA, CollisionData* collisionB){
+    size_t t = collisionB->LumData->size()/2;
     Float_t x[t], y[t],zy[t],zx[t];
     for (size_t i = t; i < 2*t; i++) {
       zx[i-t]=0;
       x[i-t] = beamA->at(i).planeCoord-beamB->at(i).planeCoord;
 
 
-      for (size_t p = 0; p < collisionsA->at(i).size(); p++) {
-        zx[i-t] += collisionsA->at(i).at(p);
+      for (size_t p = 0; p < collisionB->LumData->at(i).size(); p++) {
+        zx[i-t] += collisionB->LumData->at(i).at(p);
       }
 
 
 
-      for (size_t p = 0; p < collisionsB->at(i).size(); p++) {
-        zx[i-t] += collisionsB->at(i).at(p);
+      for (size_t p = 0; p < collisionB->LumData->at(i).size(); p++) {
+        zx[i-t] += collisionB->LumData->at(i).at(p);
       }
-      zx[i-t] = zx[i-t]/(2*collisionsB->at(i).size());
+      zx[i-t] = zx[i-t]/(2*collisionB->LumData->at(i).size());
     }
 
 
@@ -220,8 +229,8 @@ TF1* GetXFit(vector<BeamData> *beamA,vector<BeamData> *beamB,vector<vector<Float
 
 };
 
-TF1* GetYFit(vector<BeamData> *beamA,vector<BeamData> *beamB,vector<vector<Float_t>>* collisionsA,vector<vector<Float_t>>* collisionsB){
-    size_t t = collisionsB->size()/2;
+TF1* GetYFit(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData* collisionA, CollisionData* collisionB){
+    size_t t = collisionB->LumData->size()/2;
     Float_t x[t], y[t],zy[t],zx[t];
 
 
@@ -230,16 +239,16 @@ TF1* GetYFit(vector<BeamData> *beamA,vector<BeamData> *beamB,vector<vector<Float
       y[i] = beamA->at(i).planeCoord-beamB->at(i).planeCoord;
 
 
-      for (size_t p = 0; p < collisionsA->at(i).size(); p++) {
-        zy[i] +=  collisionsA->at(i).at(p);
+      for (size_t p = 0; p < collisionB->LumData->at(i).size(); p++) {
+        zy[i] +=  collisionB->LumData->at(i).at(p);
 
       }
 
-      for (size_t s  = 0; s < collisionsB->at(i).size(); s++) {
+      for (size_t s  = 0; s < collisionB->LumData->at(i).size(); s++) {
 
-        zy[i] += collisionsB->at(i).at(s);
+        zy[i] += collisionB->LumData->at(i).at(s);
       }
-      zy[i] = zy[i]/(2*collisionsB->at(i).size());
+      zy[i] = zy[i]/(2*collisionB->LumData->at(i).size());
     }
 
 
@@ -251,16 +260,16 @@ TF1* GetYFit(vector<BeamData> *beamA,vector<BeamData> *beamB,vector<vector<Float
 
 };
 
-void PlotBCIDs_Fit(vector<BeamData> *beamA,vector<BeamData> *beamB,vector<vector<Float_t>>* collisionA,vector<vector<Float_t>>* collisionB, TF1* fitX,TF1* fitY,const vector<vector<Int_t>> *B1BCID,const vector<vector<Int_t>> *B2BCID, ExportDataHandler * saveData){
+void PlotBCIDs_Fit(vector<BeamData> *beamA,vector<BeamData> *beamB, CollisionData* collisionA, CollisionData* collisionB, TF1* fitX,TF1* fitY, ExportDataHandler * saveData){
   TCanvas *canvasX;
   TCanvas *canvasY;
   canvasX = new TCanvas("initx","welcome",200,340,500,300);
   canvasX->Print("testX.pdf(");
   canvasY = new TCanvas("inity","welcome",200,340,500,300);
   canvasY->Print("testY.pdf(");
-  size_t t = collisionA->size()/2;
+  size_t t = collisionA->LumData->size()/2;
   Float_t x[t], y[t],zy[t],zx[t];
-  for (size_t i = 0; i < collisionA->at(0).size(); i++) {
+  for (size_t i = 0; i < collisionA->LumData->at(0).size(); i++) {
     for (size_t p = 0; p < t; p++) {
       y[p] = beamA->at(p).planeCoord-beamB->at(p).planeCoord;
       x[p] = beamA->at(t+p).planeCoord-beamB->at(t+p).planeCoord;
@@ -269,12 +278,12 @@ void PlotBCIDs_Fit(vector<BeamData> *beamA,vector<BeamData> *beamB,vector<vector
       zy[p] = 0;
 
 
-      zx[p] += collisionA->at((t+p)).at(i);
-      zx[p] += collisionB->at(t+p).at(i);
+      zx[p] += collisionA->LumData->at((t+p)).at(i);
+      zx[p] += collisionB->LumData->at(t+p).at(i);
       zx[p] = zx[p]/2;
 
-      zy[p] +=  collisionA->at(p).at(i);
-      zy[p] += collisionB->at(p).at(i);
+      zy[p] +=  collisionA->LumData->at(p).at(i);
+      zy[p] += collisionB->LumData->at(p).at(i);
       zy[p] = zy[p]/2;
 
 
@@ -282,8 +291,8 @@ void PlotBCIDs_Fit(vector<BeamData> *beamA,vector<BeamData> *beamB,vector<vector
 
 
     }
-    string x1 = "X:" + to_string(B1BCID->at(0).at(i));
-    string y1 = "Y:" + to_string(B1BCID->at(0).at(i));
+    string x1 = "X:" + to_string(collisionA->BCID->at(0).at(i));
+    string y1 = "Y:" + to_string(collisionA->BCID->at(0).at(i));
     const char* namex = x1.c_str();
     const char* namey = y1.c_str();
 
@@ -319,16 +328,16 @@ void PlotBCIDs_Fit(vector<BeamData> *beamA,vector<BeamData> *beamB,vector<vector
 
 };
 
-void PlotMeansXY(vector<BeamData> *beamA,vector<BeamData> *beamB,vector<vector<Float_t>>* collisionA,vector<vector<Float_t>>* collisionB,const vector<vector<Int_t>> *B1BCID,const vector<vector<Int_t>> *B2BCID,TCanvasFileWriter *writer){
+void PlotMeansXY(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData* collisionA, CollisionData* collisionB,TCanvasFileWriter *writer){
 
-  vector<Float_t> * mean = new vector<Float_t>(collisionA->at(0).size());
+  vector<Float_t> * mean = new vector<Float_t>(collisionA->LumData->at(0).size());
   Float_t x[9], y[9];
-  cout << collisionA->size()<<endl;
-  for (size_t i = 0; i < collisionA->at(0).size(); i++) {
-    for (size_t p = 0; p < collisionA->size()/2; p++) {
+  cout << collisionA->LumData->size()<<endl;
+  for (size_t i = 0; i < collisionA->LumData->at(0).size(); i++) {
+    for (size_t p = 0; p < collisionA->LumData->size()/2; p++) {
       x[p] = 0;
       y[p] = 0;
-      y[p] = collisionA->at(9+p).at(i);
+      y[p] = collisionA->LumData->at(9+p).at(i);
       x[p] = beamA->at(9+p).planeCoord-beamB->at(9+p).planeCoord;
 
 
@@ -352,13 +361,13 @@ void PlotMeansXY(vector<BeamData> *beamA,vector<BeamData> *beamB,vector<vector<F
 
 
 
-  float z1[B1BCID->at(0).size()];
-  float z2[B1BCID->at(0).size()];
+  float z1[collisionA->BCID->at(0).size()];
+  float z2[collisionA->BCID->at(0).size()];
 
     copy(mean->begin(), mean->end(), z1);
-    copy(B1BCID->at(0).begin(), B1BCID->at(0).end(), z2);
+    copy(collisionA->BCID->at(0).begin(), collisionA->BCID->at(0).end(), z2);
     TCanvas * canvasY = new TCanvas("namey","namey",200,340,500,300);
-    TGraph* plot = new TGraph(B1BCID->at(0).size(),z2,z1);
+    TGraph* plot = new TGraph(collisionA->BCID->at(0).size(),z2,z1);
 
     plot->SetTitle("MeanX by BCID");
 
@@ -370,12 +379,12 @@ void PlotMeansXY(vector<BeamData> *beamA,vector<BeamData> *beamB,vector<vector<F
     writer->Write(canvasY);
 
 
-    mean = new vector<Float_t>(collisionA->at(0).size());
-    for (size_t i = 0; i < collisionA->at(0).size(); i++) {
-      for (size_t p = 0; p < collisionA->size()/2; p++) {
+    mean = new vector<Float_t>(collisionA->LumData->at(0).size());
+    for (size_t i = 0; i < collisionA->LumData->at(0).size(); i++) {
+      for (size_t p = 0; p < collisionA->LumData->size()/2; p++) {
         x[p] = 0;
         y[p] = 0;
-        y[p] = collisionA->at(p).at(i);
+        y[p] = collisionA->LumData->at(p).at(i);
         x[p] = beamA->at(p).planeCoord-beamB->at(p).planeCoord;
       }
       TCanvas * canvasY = new TCanvas("namey","namey",200,340,500,300);
@@ -396,9 +405,9 @@ void PlotMeansXY(vector<BeamData> *beamA,vector<BeamData> *beamB,vector<vector<F
     }
 
     copy(mean->begin(), mean->end(), z1);
-    copy(B1BCID->at(0).begin(), B1BCID->at(0).end(), z2);
+    copy(collisionA->BCID->at(0).begin(), collisionA->BCID->at(0).end(), z2);
     canvasY = new TCanvas("namey","namey",200,340,500,300);
-    plot = new TGraph(B1BCID->at(0).size(),z2,z1);
+    plot = new TGraph(collisionA->BCID->at(0).size(),z2,z1);
 
     plot->SetTitle("MeanY by BCID");
 
@@ -417,19 +426,19 @@ void PlotMeansXY(vector<BeamData> *beamA,vector<BeamData> *beamB,vector<vector<F
 
 }
 
-void PlotFitsXY(vector<BeamData> *beamA,vector<BeamData> *beamB,vector<vector<Float_t>>* collisionA,vector<vector<Float_t>>* collisionB,const vector<vector<Int_t>> *B1BCID,const vector<vector<Int_t>> *B2BCID,TCanvasFileWriter *writer){
+void PlotFitsXY(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData* collisionA, CollisionData* collisionB,TCanvasFileWriter *writer){
 
   Float_t x[9], y[9];
-  for (size_t i = 0; i < collisionA->at(0).size(); i++) {
-    for (size_t p = 0; p < collisionA->size()/2; p++) {
+  for (size_t i = 0; i < collisionA->LumData->at(0).size(); i++) {
+    for (size_t p = 0; p < collisionA->LumData->size()/2; p++) {
       x[p] = 0;
       y[p] = 0;
-      y[p] = collisionA->at(9+p).at(i);
+      y[p] = collisionA->LumData->at(9+p).at(i);
       x[p] = beamA->at(9+p).planeCoord-beamB->at(9+p).planeCoord;
 
 
     }
-    string x1 = "X:" + to_string(B1BCID->at(0).at(i));
+    string x1 = "X:" + to_string(collisionA->BCID->at(0).at(i));
 
     const char* namex = x1.c_str();
 
@@ -458,17 +467,17 @@ void PlotFitsXY(vector<BeamData> *beamA,vector<BeamData> *beamB,vector<vector<Fl
 
 
 
-  for (size_t i = 0; i < collisionA->at(0).size(); i++) {
-    for (size_t p = 0; p < collisionA->size()/2; p++) {
+  for (size_t i = 0; i < collisionA->LumData->at(0).size(); i++) {
+    for (size_t p = 0; p < collisionA->LumData->size()/2; p++) {
       x[p] = 0;
       y[p] = 0;
-      y[p] = collisionA->at(p).at(i);
+      y[p] = collisionA->LumData->at(p).at(i);
       x[p] = beamA->at(p).planeCoord-beamB->at(p).planeCoord;
 
 
     }
 
-    string x1 = "Y:" + to_string(B1BCID->at(0).at(i));
+    string x1 = "Y:" + to_string(collisionA->BCID->at(0).at(i));
 
     const char* namex = x1.c_str();
 
@@ -496,20 +505,20 @@ void PlotFitsXY(vector<BeamData> *beamA,vector<BeamData> *beamB,vector<vector<Fl
 }
 
 
-void PlotWidthXY(vector<BeamData> *beamA,vector<BeamData> *beamB,vector<vector<Float_t>>* collisionA,vector<vector<Float_t>>* collisionB,const vector<vector<Int_t>> *B1BCID,const vector<vector<Int_t>> *B2BCID,TCanvasFileWriter *writer){
+void PlotWidthXY(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData* collisionA, CollisionData* collisionB,TCanvasFileWriter *writer){
 
-  vector<Double_t> * width = new vector<Double_t>(collisionA->at(0).size());
+  vector<Double_t> * width = new vector<Double_t>(collisionA->LumData->at(0).size());
   Float_t x[9], y[9];
-  for (size_t i = 0; i < collisionA->at(0).size(); i++) {
-    for (size_t p = 0; p < collisionA->size()/2; p++) {
+  for (size_t i = 0; i < collisionA->LumData->at(0).size(); i++) {
+    for (size_t p = 0; p < collisionA->LumData->size()/2; p++) {
       x[p] = 0;
       y[p] = 0;
-      y[p] = collisionA->at(9+p).at(i);
+      y[p] = collisionA->LumData->at(9+p).at(i);
       x[p] = beamA->at(9+p).planeCoord-beamB->at(9+p).planeCoord;
 
 
     }
-    string x1 = "X:" + to_string(B1BCID->at(0).at(i));
+    string x1 = "X:" + to_string(collisionA->BCID->at(0).at(i));
 
     const char* namex = x1.c_str();
 
@@ -534,14 +543,14 @@ void PlotWidthXY(vector<BeamData> *beamA,vector<BeamData> *beamB,vector<vector<F
     delete canvasY;
 
   }
-  float z1[B1BCID->at(0).size()];
-  float z2[B1BCID->at(0).size()];
+  float z1[collisionA->BCID->at(0).size()];
+  float z2[collisionA->BCID->at(0).size()];
 
   copy(width->begin(), width->end(), z1);
-  copy(B1BCID->at(0).begin(), B1BCID->at(0).end(), z2);
+  copy(collisionA->BCID->at(0).begin(), collisionA->BCID->at(0).end(), z2);
   cout<<z1<<endl;
   TCanvas * widthC = new TCanvas("WidthX","namex",200,340,500,300);
-  TGraph* plot = new TGraph(B1BCID->at(0).size(),z2,z1);
+  TGraph* plot = new TGraph(collisionA->BCID->at(0).size(),z2,z1);
   plot->SetTitle("Width X");
   plot->Draw("AP");
 
@@ -558,16 +567,16 @@ void PlotWidthXY(vector<BeamData> *beamA,vector<BeamData> *beamB,vector<vector<F
 
 
 
-  for (size_t i = 0; i < collisionA->at(0).size(); i++) {
-    for (size_t p = 0; p < collisionA->size()/2; p++) {
+  for (size_t i = 0; i < collisionA->LumData->at(0).size(); i++) {
+    for (size_t p = 0; p < collisionA->LumData->size()/2; p++) {
       x[p] = 0;
       y[p] = 0;
-      y[p] = collisionA->at(p).at(i);
+      y[p] = collisionA->LumData->at(p).at(i);
       x[p] = beamA->at(p).planeCoord-beamB->at(p).planeCoord;
 
 
     }
-    string x1 = "Y:" + to_string(B1BCID->at(0).at(i));
+    string x1 = "Y:" + to_string(collisionA->BCID->at(0).at(i));
 
     const char* namex = x1.c_str();
 
@@ -594,10 +603,10 @@ void PlotWidthXY(vector<BeamData> *beamA,vector<BeamData> *beamB,vector<vector<F
   }
 
   copy(width->begin(), width->end(), z1);
-  copy(B1BCID->at(0).begin(), B1BCID->at(0).end(), z2);
+  copy(collisionA->BCID->at(0).begin(), collisionA->BCID->at(0).end(), z2);
 
   widthC = new TCanvas("WidthX","namex",200,340,500,300);
-  plot = new TGraph(B1BCID->at(0).size(),z2,z1);
+  plot = new TGraph(collisionA->BCID->at(0).size(),z2,z1);
   plot->SetTitle("Width Y");
   plot->Draw("AP");
 
@@ -612,20 +621,20 @@ void PlotWidthXY(vector<BeamData> *beamA,vector<BeamData> *beamB,vector<vector<F
 }
 
 
-void PlotChi2_DOG_XY(TF1* TotalFitx,TF1* TotalFity,vector<BeamData> *beamA,vector<BeamData> *beamB,vector<vector<Float_t>>* collisionA,vector<vector<Float_t>>* collisionB,const vector<vector<Int_t>> *B1BCID,const vector<vector<Int_t>> *B2BCID,TCanvasFileWriter *writer){
+void PlotChi2_DOG_XY(TF1* TotalFitx,TF1* TotalFity,vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData* collisionA, CollisionData* collisionB,TCanvasFileWriter *writer){
   int DOG = 9-2;
-  vector<Double_t> * chi = new vector<Double_t>(collisionA->at(0).size());
+  vector<Double_t> * chi = new vector<Double_t>(collisionA->LumData->at(0).size());
   Float_t x[9], y[9];
-  for (size_t i = 0; i < collisionA->at(0).size(); i++) {
-    for (size_t p = 0; p < collisionA->size()/2; p++) {
+  for (size_t i = 0; i < collisionA->LumData->at(0).size(); i++) {
+    for (size_t p = 0; p < collisionA->LumData->size()/2; p++) {
       x[p] = 0;
       y[p] = 0;
-      y[p] = collisionA->at(9+p).at(i);
+      y[p] = collisionA->LumData->at(9+p).at(i);
       x[p] = beamA->at(9+p).planeCoord-beamB->at(9+p).planeCoord;
 
 
     }
-    string x1 = "chi X:" + to_string(B1BCID->at(0).at(i));
+    string x1 = "chi X:" + to_string(collisionA->BCID->at(0).at(i));
 
     const char* namex = x1.c_str();
 
@@ -650,14 +659,14 @@ void PlotChi2_DOG_XY(TF1* TotalFitx,TF1* TotalFity,vector<BeamData> *beamA,vecto
     delete canvasY;
 
   }
-  float z1[B1BCID->at(0).size()];
-  float z2[B1BCID->at(0).size()];
+  float z1[collisionA->BCID->at(0).size()];
+  float z2[collisionA->BCID->at(0).size()];
 
   copy(chi->begin(), chi->end(), z1);
-  copy(B1BCID->at(0).begin(), B1BCID->at(0).end(), z2);
+  copy(collisionA->BCID->at(0).begin(), collisionA->BCID->at(0).end(), z2);
   cout<<z1<<endl;
   TCanvas * widthC = new TCanvas("WidthX","namex",200,340,500,300);
-  TGraph* plot = new TGraph(B1BCID->at(0).size(),z2,z1);
+  TGraph* plot = new TGraph(collisionA->BCID->at(0).size(),z2,z1);
   plot->SetTitle("chi X");
   plot->Draw("AP");
 
@@ -671,18 +680,18 @@ void PlotChi2_DOG_XY(TF1* TotalFitx,TF1* TotalFity,vector<BeamData> *beamA,vecto
 
 
 
-  chi = new vector<Double_t>(collisionA->at(0).size());
+  chi = new vector<Double_t>(collisionA->LumData->at(0).size());
 
-  for (size_t i = 0; i < collisionA->at(0).size(); i++) {
-    for (size_t p = 0; p < collisionA->size()/2; p++) {
+  for (size_t i = 0; i < collisionA->LumData->at(0).size(); i++) {
+    for (size_t p = 0; p < collisionA->LumData->size()/2; p++) {
       x[p] = 0;
       y[p] = 0;
-      y[p] = collisionA->at(p).at(i);
+      y[p] = collisionA->LumData->at(p).at(i);
       x[p] = beamA->at(p).planeCoord-beamB->at(p).planeCoord;
 
 
     }
-    string x1 = "chi Y:" + to_string(B1BCID->at(0).at(i));
+    string x1 = "chi Y:" + to_string(collisionA->BCID->at(0).at(i));
 
     const char* namex = x1.c_str();
 
@@ -710,10 +719,10 @@ void PlotChi2_DOG_XY(TF1* TotalFitx,TF1* TotalFity,vector<BeamData> *beamA,vecto
 
 
   copy(chi->begin(), chi->end(), z1);
-  copy(B1BCID->at(0).begin(), B1BCID->at(0).end(), z2);
+  copy(collisionA->BCID->at(0).begin(), collisionA->BCID->at(0).end(), z2);
   cout<<z1<<endl;
    widthC = new TCanvas("WidthX","namex",200,340,500,300);
-   plot = new TGraph(B1BCID->at(0).size(),z2,z1);
+   plot = new TGraph(collisionA->BCID->at(0).size(),z2,z1);
   plot->SetTitle("chi Y");
   plot->Draw("AP");
 
@@ -723,6 +732,170 @@ void PlotChi2_DOG_XY(TF1* TotalFitx,TF1* TotalFity,vector<BeamData> *beamA,vecto
   plot->Draw("AP");
 
   writer->Write(widthC);
+
+
+}
+
+
+vector<vector<Float_t>>* getCollisionError(){
+
+  return NULL;
+}
+
+void ComparePeaks(CollisionData* collisionA1,CollisionData* collisionB1,CollisionData* collisionA2,CollisionData* collisionB2,TCanvasFileWriter * writer){
+  int size = collisionA1->LumData->at(0).size();
+  double x[size];
+  double y[size];
+  for (size_t i = 0; i < collisionA1->LumData->at(0).size(); i++) {
+    x[i] = 0;
+    y[i] = 0;
+    y[i] = (collisionA1->LumData->at(3).at(i) + collisionB1->LumData->at(3).at(i))/2;
+    x[i] = collisionA1->BCID->at(0).at(i);
+
+
+    }
+    string x1 = "Y = ComparisonPeak";
+
+    const char* namex = x1.c_str();
+
+    TCanvas * canvasY = new TCanvas(namex,namex,200,340,500,300);
+    TGraph* plot = new TGraph(size,x,y);
+    TF1* function = new TF1("h1","gaus",-1,1);
+    plot->SetTitle(namex);
+
+    //plot->Draw("AP");
+    //plot->Fit("h1","L");
+
+    plot->SetMarkerStyle(21);
+    plot->SetMarkerSize(0.6);
+    plot->SetMarkerColor(1);
+
+    plot->Draw("AP");
+
+    for (size_t i = 0; i < collisionA2->LumData->at(0).size(); i++) {
+      x[i] = 0;
+      y[i] = 0;
+      y[i] = (collisionA2->LumData->at(3).at(i) + collisionB2->LumData->at(3).at(i))/2;
+      x[i] = collisionA2->BCID->at(0).at(i);
+
+
+    }
+
+    plot = new TGraph(size,x,y);
+
+
+
+    plot->SetMarkerStyle(21);
+    plot->SetMarkerSize(0.6);
+    plot->SetMarkerColor(2);
+
+    plot->Draw("SAMEP");
+
+
+
+
+
+};
+
+
+void ComparePoints(int x1, int x2,CollisionData* collisionA1,CollisionData* collisionB1,TCanvasFileWriter * writer){
+  int size = collisionA1->LumData->at(0).size();
+  double x[size];
+  double y[size];
+  for (size_t i = 0; i < collisionA1->LumData->at(0).size(); i++) {
+    x[i] = 0;
+    y[i] = 0;
+    y[i] = ((collisionA1->LumData->at(x1).at(i) + collisionB1->LumData->at(x1).at(i))/2)
+          /((collisionA1->LumData->at(x2).at(i) + collisionB1->LumData->at(x2).at(i))/2);
+    x[i] = collisionA1->BCID->at(0).at(i);
+
+
+    }
+    string xx = "X: ComparePoints" + to_string(x1) + " " + to_string(x2);
+
+    const char* namex = xx.c_str();
+
+    TCanvas * canvasY = new TCanvas(namex,namex,200,340,500,300);
+    TGraph* plot = new TGraph(size,x,y);
+    TF1* function = new TF1("h1","gaus",-1,1);
+    plot->SetTitle(namex);
+
+    //plot->Draw("AP");
+    //plot->Fit("h1","L");
+
+    plot->SetMarkerStyle(21);
+    plot->SetMarkerSize(0.6);
+    plot->SetMarkerColor(1);
+
+    plot->Draw("AP");
+
+}
+void CompareAllPoints(CollisionData* collisionA1,CollisionData* collisionB1,TCanvasFileWriter * writer){
+  int size = collisionA1->LumData->at(0).size();
+  int point = 4;
+  double rate[9];
+  double x[size];
+  double y[size];
+  TCanvas * canvasY = new TCanvas("ets","test",200,340,500,300);
+  TGraph* plot;
+  for (size_t l = 0; l < 9; l++) {
+    /* code */
+    for (size_t i = 0; i < collisionA1->LumData->at(0).size(); i++) {
+      x[i] = 0;
+      y[i] = 0;
+      y[i] = ((collisionA1->LumData->at(l).at(i) + collisionB1->LumData->at(l).at(i))/2)
+      /((collisionA1->LumData->at(point).at(i) + collisionB1->LumData->at(point).at(i))/2);
+      x[i] = collisionA1->BCID->at(0).at(i);
+
+
+
+    }
+
+
+    string xx = "X: ComparePoints" + to_string(4) + " " + to_string(l);
+
+    const char* namex = xx.c_str();
+
+     plot = new TGraph(size,x,y);
+     TF1* function = new TF1("h1","pol1",-1,1);
+    plot->SetTitle(namex);
+
+
+
+    plot->SetMarkerStyle(21);
+    plot->SetMarkerSize(0.6);
+    plot->SetMarkerColor(l+1);
+    plot->GetYaxis()->SetRangeUser(0,1);
+
+
+    if(l>0)plot->Draw("SAMEP");
+    else plot->Draw("AP");
+    plot->Fit("h1");
+
+    rate[l] = function->GetParameter(1);
+
+  }
+
+  canvasY = new TCanvas("d","dd",200,340,500,300);
+
+  string xx = "X: ComparePoints" + to_string(4) + " ALL" ;
+
+  const char* namex = xx.c_str();
+  double z[9] = {0,1,2,3,4,5,6,7,8};
+   plot = new TGraph(9,z,rate);
+
+  plot->SetTitle(namex);
+
+  //plot->Draw("AP");
+
+
+  plot->SetMarkerStyle(21);
+  plot->SetMarkerSize(0.6);
+  plot->SetMarkerColor(1);
+  //plot->GetYaxis()->SetRangeUser(0,1);
+
+  plot->Draw("AP");
+
 
 
 }
@@ -779,6 +952,4 @@ void PlotChi2_DOG_XY(TF1* TotalFitx,TF1* TotalFity,vector<BeamData> *beamA,vecto
 
 
 
-
-
-//emd
+//end
