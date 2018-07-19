@@ -25,6 +25,9 @@ void Init(string fileName){
   collisionA.LumData = SortCollisions(beamA, collisionA.BCID);
   collisionB.LumData = SortCollisions(beamB, collisionB.BCID);
 
+  SortErrors(&collisionA,tree,0);
+  SortErrors(&collisionB,tree,1);
+
   TF1* fitX = GetXFit(beamA,beamB,&collisionA,&collisionB);
   TF1* fitY = GetYFit(beamA,beamB,&collisionA,&collisionB);
 
@@ -32,20 +35,26 @@ void Init(string fileName){
 
   PlotMeansXY(beamA,beamB,&collisionA,&collisionB,iobuffer);
   PlotWidthXY(beamA,beamB,&collisionA,&collisionB,iobuffer);
-  //PlotFitsXY(beamA,beamB,collisionsA,collisionsB,B1BCID,B2BCID,iobuffer);
-  //PlotChi2_DOG_XY(fitX,fitY,beamA,beamB,collisionA,collisionB,B1BCID,B2BCID,iobuffer);//REDO
+  Densities(&collisionA,&collisionB,81,183,0,iobuffer);
+
+  DoubleGuass_Y(beamA,beamB,&collisionA,&collisionB,94,iobuffer);
+  PlotChai2(beamA,beamB,&collisionA,&collisionB,iobuffer);
+
+  PlotFitsXY(beamA,beamB,&collisionA,&collisionB,iobuffer);
+  GetFit_Y(beamA,beamB,&collisionA,&collisionB,94,iobuffer);
 
 
 
 
 
   iobuffer->CloseFile();
+  filein->Close();
 };
 
 
 void Compare(string fileName1, string fileName2){
   string fileLocation1 = "file:~/Downloads/HEPP/" + fileName1+".root";
-  TCanvasFileWriter * iobuffer = new TCanvasFileWriter(fileName1);
+  TCanvasFileWriter * iobuffer = new TCanvasFileWriter(fileName1+"_:_"+fileName2);
   TFile *filein1 = new TFile(fileLocation1.c_str(),"READ");
   TTree *tree1 = (TTree*) filein1->Get("vdMScanData;1");
   Int_t nentries1 = tree1->GetEntries();

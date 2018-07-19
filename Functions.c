@@ -1,5 +1,6 @@
 
 #include <vector>
+#include <cmath>
 #include "ExportData.c"
 struct BeamData{
   Float_t scanRun;
@@ -134,6 +135,39 @@ vector<vector<Float_t>>* SortCollisions(vector<BeamData> *beam,const vector<vect
   return collisions;
 };
 
+void SortErrors(CollisionData * collision, TTree* tree, int beam){
+
+  collision->Error = new vector<vector<Float_t>> (18, vector<Float_t>(collision->BCID->at(0).size()));
+
+
+
+
+  auto N = tree->GetLeaf("lucBiHitOR_NOrbPhys");
+  auto rate = tree->GetLeaf("lucBiHitOR_BunchRawInstLum");
+
+  for (size_t i = 0; i < 18; i++) {
+    for (size_t c = 0; c < collision->Error->at(0).size(); c++) {
+
+      int BCID = collision->BCID->at(0).at(c);
+      int Nt = 8;
+      Float_t f = rate->GetValue(BCID)/Nt;
+      Double_t lumerror = 1./(sqrt(N->GetValue(i)* Nt))* (-1)/log(1-f)*sqrt(f/(1-f));
+
+      collision->Error->at(i).at(c) = lumerror * collision->LumData->at(i).at(c);
+    }
+  }
+
+};
+
+
+
+
+
+
+
+
+
+
 
 void GraphTotalAvgCollisions(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData* collisionA, CollisionData* collisionB){
   cout <<"graphing total collisions" << endl;
@@ -199,6 +233,8 @@ void GraphTotalAvgCollisions(vector<BeamData> *beamA,vector<BeamData> *beamB,Col
   gy->Draw("AP*");
 
 };
+
+
 
 TF1* GetXFit(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData* collisionA, CollisionData* collisionB){
     size_t t = collisionB->LumData->size()/2;
@@ -450,8 +486,8 @@ void PlotFitsXY(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData* c
     plot->Draw("AP");
     plot->Fit("h1","L");
 
-    plot->SetMarkerStyle(21);
-    plot->SetMarkerSize(3);
+    plot->SetMarkerStyle(18);
+    plot->SetMarkerSize(0.3);
     plot->SetMarkerColor(1);
 
     plot->Draw("AP");
@@ -491,8 +527,8 @@ void PlotFitsXY(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData* c
     plot->Draw("AP");
     plot->Fit("h1","L");
 
-    plot->SetMarkerStyle(21);
-    plot->SetMarkerSize(3);
+    plot->SetMarkerStyle(18);
+    plot->SetMarkerSize(0.3);
     plot->SetMarkerColor(1);
 
     plot->Draw("AP");
@@ -621,120 +657,6 @@ void PlotWidthXY(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData* 
 }
 
 
-void PlotChi2_DOG_XY(TF1* TotalFitx,TF1* TotalFity,vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData* collisionA, CollisionData* collisionB,TCanvasFileWriter *writer){
-  int DOG = 9-2;
-  vector<Double_t> * chi = new vector<Double_t>(collisionA->LumData->at(0).size());
-  Float_t x[9], y[9];
-  for (size_t i = 0; i < collisionA->LumData->at(0).size(); i++) {
-    for (size_t p = 0; p < collisionA->LumData->size()/2; p++) {
-      x[p] = 0;
-      y[p] = 0;
-      y[p] = collisionA->LumData->at(9+p).at(i);
-      x[p] = beamA->at(9+p).planeCoord-beamB->at(9+p).planeCoord;
-
-
-    }
-    string x1 = "chi X:" + to_string(collisionA->BCID->at(0).at(i));
-
-    const char* namex = x1.c_str();
-
-    TCanvas * canvasY = new TCanvas(namex,namex,200,340,500,300);
-    TGraph* plot = new TGraph(9,x,y);
-    TF1* function = new TF1("h1","gaus",-1,1);
-    plot->SetTitle(namex);
-
-    plot->Draw("AP");
-    plot->Fit("h1","L");
-
-    plot->SetMarkerStyle(21);
-    plot->SetMarkerSize(3);
-    plot->SetMarkerColor(1);
-
-    plot->Draw("AP*");
-
-
-
-    chi->at(i) = function->GetHistogram()->Chisquare(TotalFity);
-
-    delete canvasY;
-
-  }
-  float z1[collisionA->BCID->at(0).size()];
-  float z2[collisionA->BCID->at(0).size()];
-
-  copy(chi->begin(), chi->end(), z1);
-  copy(collisionA->BCID->at(0).begin(), collisionA->BCID->at(0).end(), z2);
-  cout<<z1<<endl;
-  TCanvas * widthC = new TCanvas("WidthX","namex",200,340,500,300);
-  TGraph* plot = new TGraph(collisionA->BCID->at(0).size(),z2,z1);
-  plot->SetTitle("chi X");
-  plot->Draw("AP");
-
-  plot->SetMarkerStyle(18);
-  plot->SetMarkerSize(0.4);
-  plot->SetMarkerColor(2);
-  plot->Draw("AP");
-
-  writer->Write(widthC);
-
-
-
-
-  chi = new vector<Double_t>(collisionA->LumData->at(0).size());
-
-  for (size_t i = 0; i < collisionA->LumData->at(0).size(); i++) {
-    for (size_t p = 0; p < collisionA->LumData->size()/2; p++) {
-      x[p] = 0;
-      y[p] = 0;
-      y[p] = collisionA->LumData->at(p).at(i);
-      x[p] = beamA->at(p).planeCoord-beamB->at(p).planeCoord;
-
-
-    }
-    string x1 = "chi Y:" + to_string(collisionA->BCID->at(0).at(i));
-
-    const char* namex = x1.c_str();
-
-    TCanvas * canvasY = new TCanvas(namex,namex,200,340,500,300);
-    TGraph* plot = new TGraph(9,x,y);
-    TF1* function = new TF1("h1","gaus",-1,1);
-    plot->SetTitle(namex);
-
-    plot->Draw("AP");
-    plot->Fit("h1","L");
-
-    plot->SetMarkerStyle(21);
-    plot->SetMarkerSize(3);
-    plot->SetMarkerColor(1);
-
-    plot->Draw("AP*");
-
-
-
-    chi->at(i) = function->GetHistogram()->Chisquare(TotalFitx);
-
-    delete canvasY;
-
-  }
-
-
-  copy(chi->begin(), chi->end(), z1);
-  copy(collisionA->BCID->at(0).begin(), collisionA->BCID->at(0).end(), z2);
-  cout<<z1<<endl;
-   widthC = new TCanvas("WidthX","namex",200,340,500,300);
-   plot = new TGraph(collisionA->BCID->at(0).size(),z2,z1);
-  plot->SetTitle("chi Y");
-  plot->Draw("AP");
-
-  plot->SetMarkerStyle(18);
-  plot->SetMarkerSize(0.4);
-  plot->SetMarkerColor(2);
-  plot->Draw("AP");
-
-  writer->Write(widthC);
-
-
-}
 
 
 vector<vector<Float_t>>* getCollisionError(){
@@ -771,6 +693,7 @@ void ComparePeaks(CollisionData* collisionA1,CollisionData* collisionB1,Collisio
     plot->SetMarkerColor(1);
 
     plot->Draw("AP");
+    writer->Write(canvasY);
 
     for (size_t i = 0; i < collisionA2->LumData->at(0).size(); i++) {
       x[i] = 0;
@@ -791,7 +714,7 @@ void ComparePeaks(CollisionData* collisionA1,CollisionData* collisionB1,Collisio
 
     plot->Draw("SAMEP");
 
-
+    writer->Write(canvasY);
 
 
 
@@ -823,11 +746,13 @@ void ComparePoints(int x1, int x2,CollisionData* collisionA1,CollisionData* coll
     //plot->Draw("AP");
     //plot->Fit("h1","L");
 
-    plot->SetMarkerStyle(21);
-    plot->SetMarkerSize(0.6);
-    plot->SetMarkerColor(1);
+    plot->SetMarkerStyle(18);
+    plot->SetMarkerSize(0.3);
+    plot->SetMarkerColor(2);
 
     plot->Draw("AP");
+
+    writer->Write(canvasY);
 
 }
 void CompareAllPoints(CollisionData* collisionA1,CollisionData* collisionB1,TCanvasFileWriter * writer){
@@ -896,10 +821,218 @@ void CompareAllPoints(CollisionData* collisionA1,CollisionData* collisionB1,TCan
 
   plot->Draw("AP");
 
+  writer->Write(canvasY);
+
 
 
 }
 
+template <class T> int FindIndex(vector<T> data, T objective){
+  for (size_t i = 0; i < data.size(); i++) {
+    if(data.at(i) == objective) return i;
+  }
+  return -1;
+}
+float Chi2(float observed, float expected){
+  return (pow((observed - expected),2)/expected);
+};
+float calculateChi2(TF1* func, float* x,float* y ){
+  float chi = 0;
+  for (size_t i = 0; i < 9; i++) {
+    chi += Chi2(y[i],func->Eval(x[i]));
+  }
+
+  cout <<chi<< endl;
+  return chi;
+
+};
+TF1 * GetFit_Y(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData *collisionA,CollisionData *collisionB, int BCID,TCanvasFileWriter * writer){
+  int size = 9;
+
+
+  float x[size];
+  float y[size];
+  int index = FindIndex<Int_t>(collisionA->BCID->at(0), 94);
+
+  for (size_t i = 0; i < size; i++) {
+    x[i] = beamA->at(i).planeCoord-beamB->at(i).planeCoord;
+    y[i] = (collisionA->LumData->at(i).at(index) + collisionB->LumData->at(i).at(index))/2;
+  }
+
+
+
+  TCanvas * canvas = new TCanvas("test","ttt",200,340,500,300);
+  TGraph* plot = new TGraph(size,x,y);
+  TF1* function = new TF1("h1","gaus",-1,1);
+
+  plot->Fit("h1");
+  plot->SetMarkerStyle(18);
+  plot->SetMarkerSize(0.3);
+  plot->SetMarkerColor(2);
+  plot->Draw("AP");
+
+  writer->Write(canvas);
+  calculateChi2(function,x,y);
+  return function;
+
+}
+
+void PlotChai2(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData *collisionA,CollisionData *collisionB,TCanvasFileWriter * writer){
+  int size = 9;
+  vector<Float_t> *chai2 = new vector<Float_t>();
+  for (size_t c = 0; c < collisionA->BCID->at(0).size(); c++) {
+    /* code */
+    float x[size];
+    float y[size];
+
+    for (size_t i = 0; i < size; i++) {
+      x[i] = beamA->at(i).planeCoord-beamB->at(i).planeCoord;
+      y[i] = (collisionA->LumData->at(i).at(c) + collisionB->LumData->at(i).at(c))/2;
+    }
+
+
+
+    TCanvas * canvas = new TCanvas("test","ttt",200,340,500,300);
+    TGraph* plot = new TGraph(size,x,y);
+    TF1* function = new TF1("h1","gaus",-1,1);
+
+    plot->Fit("h1");
+    plot->Draw("AP");
+
+
+    chai2->push_back(calculateChi2(function,x,y));
+    delete canvas;
+  }
+  float z1[collisionA->BCID->at(0).size()];
+  float z2[collisionA->BCID->at(0).size()];
+  copy(chai2->begin(), chai2->end(), z1);
+  copy(collisionA->BCID->at(0).begin(), collisionA->BCID->at(0).end(), z2);
+
+  TCanvas * canvas = new TCanvas("test","ttt",200,340,500,300);
+  TGraph* plot = new TGraph(collisionA->BCID->at(0).size(),z2,z1);
+
+  plot->SetTitle("Chi2");
+  plot->SetMarkerStyle(18);
+  plot->SetMarkerSize(0.3);
+  plot->SetMarkerColor(2);
+
+  plot->Draw("AP");
+
+  writer->Write(canvas);
+}
+
+
+void DoubleGuass_Y(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData *collisionA,CollisionData *collisionB, int BCID,TCanvasFileWriter * writer){
+
+  int size = 9;
+
+
+  float x[size];
+  float y[size];
+  int index = FindIndex<Int_t>(collisionA->BCID->at(0), 94);
+
+  for (size_t i = 0; i < size; i++) {
+    x[i] = beamA->at(i).planeCoord-beamB->at(i).planeCoord;
+    y[i] = (collisionA->LumData->at(i).at(index) + collisionB->LumData->at(i).at(index))/2;
+  }
+
+
+
+  TCanvas * canvas = new TCanvas("test","ttt",200,340,500,300);
+  TGraph* plot = new TGraph(size,x,y);
+  plot->SetTitle("DoubleGuass_comparison");
+
+  //0 - height
+  //1 - Mean
+  //2 - capsigma (Generalize width)
+  //3 - fraction of 2nd Gaussian
+  //4 - multiplier of second width
+  TF1* doubleGuass = new TF1("doubleGuass","[0]*( (1-[3])*exp(-0.5*((x-[1])/([2]/(1-[3]+[3]*[4])))**2) + [3]*exp(-0.5*((x-[1])/([2]*[4]/(1-[3]+[3]*[4])))**2))",-1,1);
+  TF1 * fit = new TF1("h1","gaus",-1,1);
+
+  plot->SetMarkerStyle(21);
+  plot->SetMarkerSize(0.6);
+  plot->SetMarkerColor(1);
+  plot->Draw("AP");
+
+  plot->Fit("h1","MESQ");
+
+  float p0,p1,p2,p3,p4,cdof2;
+  p0 = fit->GetParameter(0);
+  p1 = fit->GetParameter(1);
+  p2 = fit->GetParameter(2);
+
+
+  doubleGuass->SetParameter(0,p0);
+  doubleGuass->SetParameter(1,p1);
+  doubleGuass->SetParameter(2,p2);
+  doubleGuass->SetParameter(3,0.5);
+  doubleGuass->SetParameter(4,5.0);
+  doubleGuass->SetParLimits(4,1,1000);
+
+
+  plot->Fit("doubleGuass","MESQ");
+
+  p0 = doubleGuass->GetParameter(0);
+  p1 = doubleGuass->GetParameter(1);
+  p2 = doubleGuass->GetParameter(2);
+  p3 = doubleGuass->GetParameter(3);
+  p4 = doubleGuass->GetParameter(4);
+  //cdof2 = (doubleGuass->chi2()/max(f))
+
+
+
+  writer->Write(canvas);
+
+
+
+}
+
+void Densities(CollisionData *collisionA,CollisionData *collisionB, int BCID_init, int BCID_fin,int point,TCanvasFileWriter* writer){
+  vector<Float_t> *density = new vector<Float_t>();
+  vector<Int_t> * BCID = new vector<Int_t>();
+  int lastIndex = -1;
+  TCanvas * canvas = new TCanvas("test","ttt",200,340,500,300);
+  int size = BCID_fin - BCID_init;
+
+
+  for (size_t i = 0; i < size; i++) {
+
+
+    if(FindIndex<Int_t>(collisionA->BCID->at(0), i+BCID_init) != -1){
+      lastIndex++;
+      BCID->push_back(i + BCID_init);
+      int index = FindIndex<Int_t>(collisionA->BCID->at(0), i+BCID_init);
+
+      density->push_back(collisionA->LumData->at(point).at(index)/collisionA->LumData->at(4).at(index));
+      //cout <<density->at(lastIndex)<<endl;
+    }
+
+  }
+
+  float z1[density->size()];
+  float z2[BCID->size()];
+  cout <<density->size() << endl;
+  copy(density->begin(), density->end()-1, z1);
+  copy(BCID->begin(), BCID->end()-1, z2);
+  for (size_t i = 0; i < density->size(); i++) {
+    cout << z2[i] << " : " << z1[i] << endl;
+  }
+
+  TGraph* plot = new TGraph(density->size()-1,z2,z1);
+  plot->SetTitle("DensityComparison");
+
+
+  plot->SetMarkerStyle(18);
+  plot->SetMarkerSize(0.6);
+  plot->SetMarkerColor(2);
+
+  plot->Draw("AP");
+
+
+  writer->Write(canvas);
+
+}
 
 
 
