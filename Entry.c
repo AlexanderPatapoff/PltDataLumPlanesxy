@@ -28,20 +28,20 @@ void Init(string fileName){
   SortErrors(&collisionA,tree,0);
   SortErrors(&collisionB,tree,1);
 
-  TF1* fitX = GetXFit(beamA,beamB,&collisionA,&collisionB);
-  TF1* fitY = GetYFit(beamA,beamB,&collisionA,&collisionB);
+  //TF1* fitX = GetXFit(beamA,beamB,&collisionA,&collisionB);
+  //TF1* fitY = GetYFit(beamA,beamB,&collisionA,&collisionB);
 
   iobuffer->OpenFile();
 
-  PlotMeansXY(beamA,beamB,&collisionA,&collisionB,iobuffer);
-  PlotWidthXY(beamA,beamB,&collisionA,&collisionB,iobuffer);
-  Densities(&collisionA,&collisionB,81,183,0,iobuffer);
+  //PlotMeansXY(beamA,beamB,&collisionA,&collisionB,iobuffer);
+//  PlotWidthXY(beamA,beamB,&collisionA,&collisionB,iobuffer);
+  //Densities(&collisionA,&collisionB,81,183,0,iobuffer);
 
-  DoubleGuass_Y(beamA,beamB,&collisionA,&collisionB,94,iobuffer);
-  PlotChai2(beamA,beamB,&collisionA,&collisionB,iobuffer);
+  PlotChi2_XY(beamA,beamB,&collisionA,&collisionB,iobuffer);
+  PlotChi2_XY_DoubleGuas(beamA,beamB,&collisionA,&collisionB,iobuffer);
 
-  PlotFitsXY(beamA,beamB,&collisionA,&collisionB,iobuffer);
-  GetFit_Y(beamA,beamB,&collisionA,&collisionB,94,iobuffer);
+  //PlotFitsXY(beamA,beamB,&collisionA,&collisionB,iobuffer);
+  //PlotG(beamA,beamB,&collisionA,&collisionB,iobuffer);
 
 
 
@@ -109,10 +109,10 @@ void Compare(string fileName1, string fileName2){
 
 void Entry(){
 
-  //Init("scan1806012201");
+  Init("scan1806012201");
   //Init("scan1806021010");
 
-  Compare("scan1806012201","scan1806021010");
+  //Compare("scan1806012201","scan1806021010");
 
 
 
