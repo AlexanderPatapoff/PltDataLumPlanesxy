@@ -165,15 +165,41 @@ void SortErrors(CollisionData * collision, TTree* tree, int beam){
 
 
 
-Float_t Distance(TF1* fucntion, Float_t X, Float_t Y){
+Float_t Distance(TF1* function, Float_t X, Float_t Y){
 
-  return (function->Eval(X) - Y);
-
+  Float_t temp =  function->Eval(X) - Y;
+  return temp;
 }
 
 
 
+void PlotDifferenceOverLay(TCanvas* canvas,TF1* function, float * x, float * y, int size){
+  canvas->cd();
 
+  TPad *overlay = new TPad("overlay","",1,1,0,0);
+  overlay->SetFillStyle(4000);
+  overlay->SetFillColor(0);
+  overlay->SetFrameFillStyle(4000);
+  overlay->Draw();
+  overlay->cd();
+
+  for (size_t i = 0; i < size; i++) {
+    y[i] = Distance(function, x[i],y[i]);
+  }
+  TGraph* plot = new TGraph(size,x,y);
+  plot->SetTitle(" ");
+  Plot->Set
+  plot->SetMarkerColor(kRed);
+  plot->SetMarkerStyle(18);
+  plot->SetName("gr2");
+
+  //overlay->SetBBoxCenterY(250);
+  overlay->SetBBoxY1(170);
+  plot->SetMarkerSize(0.7);
+  plot->GetYAxis()->SetTitle("Seperation");
+  plot->Draw("AP");
+
+}
 
 
 void GraphTotalAvgCollisions(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData* collisionA, CollisionData* collisionB){
@@ -503,7 +529,7 @@ void PlotFitsXY(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData* c
     function->Draw("SAME");
     writer->Write(canvasY);
 
-    
+
 
     delete canvasY;
 
@@ -1292,6 +1318,12 @@ void PlotG(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData *collis
 
 
     TCanvas * canvas = new TCanvas("test","ttt",200,340,500,300);
+    TPad *pad = new TPad("Graph","",0,0,1,1);
+    pad->SetBBoxY1(100);
+    pad->SetBBoxCenterY(100);
+    pad->Draw();
+    pad->cd();
+
     TGraphErrors* plot = new TGraphErrors(size,x,y,0,e);
     //TGraph *plot = new TGraph(size,x,y);
     TF1* function = new TF1("h1","gaus",-1,1);
@@ -1303,7 +1335,9 @@ void PlotG(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData *collis
 
     plot->Fit("h1");
     plot->Draw("AP");
+    PlotDifferenceOverLay(canvas,function,x,y,9);
     writer->Write(canvas);
+
 
 };
 

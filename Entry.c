@@ -38,10 +38,11 @@ void Init(string fileName){
   //Densities(&collisionA,&collisionB,81,183,0,iobuffer);
 
   PlotChi2_XY(beamA,beamB,&collisionA,&collisionB,iobuffer);
-  PlotChi2_XY_DoubleGuas(beamA,beamB,&collisionA,&collisionB,iobuffer);
+  //PlotChi2_XY_DoubleGuas(beamA,beamB,&collisionA,&collisionB,iobuffer);
+
 
   //PlotFitsXY(beamA,beamB,&collisionA,&collisionB,iobuffer);
-  //PlotG(beamA,beamB,&collisionA,&collisionB,iobuffer);
+  PlotG(beamA,beamB,&collisionA,&collisionB,iobuffer);
 
 
 
