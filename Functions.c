@@ -165,15 +165,40 @@ void SortErrors(CollisionData * collision, TTree* tree, int beam){
 
 
 
-Float_t Distance(TF1* fucntion, Float_t X, Float_t Y){
+Float_t Distance(TF1* function, Float_t X, Float_t Y){
 
-  return (function->Eval(X) - Y);
-
+  Float_t temp =  function->Eval(X) - Y;
+  return temp;
 }
 
 
 
+void PlotDifferenceOverLay(TCanvas* canvas,TF1* function, float * x, float * y, int size){
+  canvas->cd();
 
+  TPad *overlay = new TPad("overlay","",1,1,0,0);
+  overlay->SetFillStyle(4000);
+  overlay->SetFillColor(0);
+  overlay->SetFrameFillStyle(4000);
+  overlay->Draw();
+  overlay->cd();
+
+  for (size_t i = 0; i < size; i++) {
+    y[i] = Distance(function, x[i],y[i]);
+  }
+  TGraph* plot = new TGraph(size,x,y);
+  plot->SetTitle(" ");
+  plot->SetMarkerColor(kRed);
+  plot->SetMarkerStyle(18);
+  plot->SetName("gr2");
+
+  //overlay->SetBBoxCenterY(250);
+  overlay->SetBBoxY1(170);
+  plot->SetMarkerSize(0.7);
+  plot->GetYaxis()->SetTitle("Seperation");
+  plot->Draw("AP");
+
+}
 
 
 void GraphTotalAvgCollisions(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData* collisionA, CollisionData* collisionB){
@@ -503,7 +528,7 @@ void PlotFitsXY(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData* c
     function->Draw("SAME");
     writer->Write(canvasY);
 
-    
+
 
     delete canvasY;
 
@@ -983,7 +1008,7 @@ void PlotChi2_XY_DoubleGuas(vector<BeamData> *beamA,vector<BeamData> *beamB,Coll
 
 
 
-    TCanvas * canvas = new TCanvas("test","ttt",200,340,500,300);
+    //TCanvas * canvas = new TCanvas("test","ttt",200,340,500,300);
     TGraphErrors* plot = new TGraphErrors(size,x,y,0,e);
     plot->SetTitle("DoubleGuass_comparison");
 
@@ -998,7 +1023,7 @@ void PlotChi2_XY_DoubleGuas(vector<BeamData> *beamA,vector<BeamData> *beamB,Coll
     plot->SetMarkerStyle(21);
     plot->SetMarkerSize(0.6);
     plot->SetMarkerColor(1);
-    plot->Draw("AP");
+    //plot->Draw("AP");
 
     plot->Fit("h1");
 
@@ -1026,7 +1051,7 @@ void PlotChi2_XY_DoubleGuas(vector<BeamData> *beamA,vector<BeamData> *beamB,Coll
     //cdof2 = (doubleGuass->chi2()/max(f))
 
     chi2->push_back(plot->Chisquare(doubleGuass));
-    delete canvas;
+    //delete canvas;
 
   }
 
@@ -1059,7 +1084,7 @@ void PlotChi2_XY_DoubleGuas(vector<BeamData> *beamA,vector<BeamData> *beamB,Coll
 
   chi2 = new vector<Float_t>();
 
-
+  count = collisionA->BCID->at(0).size();
   for (size_t index = 0; index < count; index++) {
       /* code */
 
@@ -1077,7 +1102,7 @@ void PlotChi2_XY_DoubleGuas(vector<BeamData> *beamA,vector<BeamData> *beamB,Coll
 
 
 
-    TCanvas * canvas = new TCanvas("test","ttt",200,340,500,300);
+    //TCanvas * canvas = new TCanvas("test","ttt",200,340,500,300);
     TGraphErrors* plot = new TGraphErrors(size,x,y,0,e);
     plot->SetTitle("DoubleGuass_comparison");
 
@@ -1092,7 +1117,7 @@ void PlotChi2_XY_DoubleGuas(vector<BeamData> *beamA,vector<BeamData> *beamB,Coll
     plot->SetMarkerStyle(21);
     plot->SetMarkerSize(0.6);
     plot->SetMarkerColor(1);
-    plot->Draw("AP");
+    //plot->Draw("AP");
 
     plot->Fit("h1");
 
@@ -1120,7 +1145,7 @@ void PlotChi2_XY_DoubleGuas(vector<BeamData> *beamA,vector<BeamData> *beamB,Coll
     //cdof2 = (doubleGuass->chi2()/max(f))
 
     chi2->push_back(plot->Chisquare(doubleGuass));
-    delete canvas;
+    //delete canvas;
 
   }
 
@@ -1130,22 +1155,23 @@ void PlotChi2_XY_DoubleGuas(vector<BeamData> *beamA,vector<BeamData> *beamB,Coll
   copy(chi2->begin(), chi2->end(), z2e2);
   copy(collisionA->BCID->at(0).begin(), collisionA->BCID->at(0).end(), z22);
 
-  canvasF = new TCanvas("test","ttt",200,340,500,300);
+  TCanvas * can = new TCanvas("test","ttt",200,340,500,300);
 
-  plotF = new TGraph(collisionA->BCID->at(0).size(),z22,z2e2);
+  TGraph *plotFs = new TGraph(collisionA->BCID->at(0).size(),z2,z2e);
 
-  plotF->SetTitle("Chi2 DoubleGuass X");
-  plotF->SetMarkerStyle(18);
-  plotF->SetMarkerSize(0.3);
-  plotF->SetMarkerColor(2);
+  plotFs->SetTitle("Chi2 DoubleGuass X");
+  plotFs->SetMarkerStyle(18);
+  plotFs->SetMarkerSize(0.3);
+  plotFs->SetMarkerColor(2);
 
-  plotF->Draw("AP");
+  plotFs->Draw("AP");
 
-  writer->Write(canvasF);
+  writer->Write(can);
 
 
 
-  delete canvasF;
+  delete can;
+
 
 
 
@@ -1292,6 +1318,12 @@ void PlotG(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData *collis
 
 
     TCanvas * canvas = new TCanvas("test","ttt",200,340,500,300);
+    TPad *pad = new TPad("Graph","",0,0,1,1);
+    pad->SetBBoxY1(100);
+    pad->SetBBoxCenterY(100);
+    pad->Draw();
+    pad->cd();
+
     TGraphErrors* plot = new TGraphErrors(size,x,y,0,e);
     //TGraph *plot = new TGraph(size,x,y);
     TF1* function = new TF1("h1","gaus",-1,1);
@@ -1303,7 +1335,9 @@ void PlotG(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData *collis
 
     plot->Fit("h1");
     plot->Draw("AP");
+    PlotDifferenceOverLay(canvas,function,x,y,9);
     writer->Write(canvas);
+
 
 };
 
