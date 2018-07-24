@@ -198,6 +198,8 @@ void PlotDifferenceOverLay(TCanvas* canvas,TF1* function, float * x, float * y, 
   plot->GetYaxis()->SetTitle("Seperation");
   plot->Draw("AP");
 
+
+
 }
 
 
@@ -504,9 +506,9 @@ void PlotFitsXY(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData* c
       y[p] = 0;
       y[p] = collisionA->LumData->at(size+p).at(i);
       x[p] = beamA->at(9+p).planeCoord-beamB->at(size+p).planeCoord;
-      float xe = collisionA->LumData->at(p).at(i);
-      float ye = collisionB->LumData->at(p).at(i);
-      e[i] = sqrt(pow(collisionB->Error->at(p).at(i),2) + pow(collisionA->Error->at(p).at(i),2));
+      float xe = collisionA->LumData->at(9+p).at(i);
+      float ye = collisionB->LumData->at(9+p).at(i);
+      e[p] = sqrt(pow(collisionB->Error->at(9+p).at(i),2) + pow(collisionA->Error->at(9+p).at(i),2));
 
     }
     string x1 = "X:" + to_string(collisionA->BCID->at(0).at(i));
@@ -514,6 +516,11 @@ void PlotFitsXY(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData* c
     const char* namex = x1.c_str();
 
     TCanvas * canvasY = new TCanvas(namex,namex,200,340,500,300);
+    TPad *pad = new TPad("Graph","",0,0,1,1);
+    pad->SetBBoxY1(100);
+    pad->SetBBoxCenterY(100);
+    pad->Draw();
+    pad->cd();
     TGraphErrors* plot = new TGraphErrors(9,x,y,0,e);
     TF1* function = new TF1("h1","gaus",-1,1);
     plot->SetTitle(namex);
@@ -526,10 +533,11 @@ void PlotFitsXY(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData* c
     plot->Draw("AP");
 
     function->Draw("SAME");
+    PlotDifferenceOverLay(canvasY,function,x,y,9);
     writer->Write(canvasY);
 
 
-
+    delete pad;
     delete canvasY;
 
   }
@@ -542,6 +550,9 @@ void PlotFitsXY(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData* c
       y[p] = 0;
       y[p] = collisionA->LumData->at(p).at(i);
       x[p] = beamA->at(p).planeCoord-beamB->at(p).planeCoord;
+      float xe = collisionA->LumData->at(p).at(i);
+      float ye = collisionB->LumData->at(p).at(i);
+      e[p] = sqrt(pow(collisionB->Error->at(p).at(i),2) + pow(collisionA->Error->at(p).at(i),2));
 
 
     }
@@ -552,12 +563,15 @@ void PlotFitsXY(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData* c
 
 
 
-    TCanvas * canvasX = new TCanvas(namex,namex,200,340,500,300);
-    TGraph* plot = new TGraph(9,x,y);
+    TCanvas * canvasY = new TCanvas(namex,namex,200,340,500,300);
+    TPad *pad = new TPad("Graph","",0,0,1,1);
+    pad->SetBBoxY1(100);
+    pad->SetBBoxCenterY(100);
+    pad->Draw();
+    pad->cd();
+    TGraphErrors* plot = new TGraphErrors(9,x,y,0,e);
     TF1* function = new TF1("h1","gaus",-1,1);
     plot->SetTitle(namex);
-
-    plot->Draw("AP");
     plot->Fit("h1","L");
 
     plot->SetMarkerStyle(18);
@@ -567,8 +581,12 @@ void PlotFitsXY(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData* c
     plot->Draw("AP");
 
     function->Draw("SAME");
-    writer->Write(canvasX);
-    delete canvasX;
+    PlotDifferenceOverLay(canvasY,function,x,y,9);
+    writer->Write(canvasY);
+
+
+    delete pad;
+    delete canvasY;
 
   }
 }
@@ -1200,6 +1218,16 @@ void DoubleGuass_Y(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData
 
 
   TCanvas * canvas = new TCanvas("test","ttt",200,340,500,300);
+  TPad *pad = new TPad("Graph","",0,0,1,1);
+  pad->SetBBoxY1(100);
+  pad->SetBBoxCenterY(100);
+  pad->Draw();
+  pad->cd();
+
+
+
+
+
   TGraphErrors* plot = new TGraphErrors(size,x,y,0,e);
   plot->SetTitle("DoubleGuass_comparison");
 
@@ -1243,6 +1271,7 @@ void DoubleGuass_Y(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData
 
 
 
+  PlotDifferenceOverLay(canvas,doubleGuass,x,y,9);
   writer->Write(canvas);
 
   delete canvas;
@@ -1340,6 +1369,64 @@ void PlotG(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData *collis
 
 
 };
+
+void MapErrors(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData *collisionA,CollisionData *collisionB,TCanvasFileWriter * writer, int point){
+
+  vector<Float_t> *distance= new vector<Float_t>();
+
+  int size = collisionA->LumData->size()/2;
+  Float_t x[size], y[size],e[size];
+  for (size_t i = 0; i < collisionA->LumData->at(0).size(); i++) {
+    for (size_t p = 0; p < collisionA->LumData->size()/2; p++) {
+      x[p] = 0;
+      y[p] = 0;
+      y[p] = collisionA->LumData->at(size+p).at(i);
+      x[p] = beamA->at(9+p).planeCoord-beamB->at(size+p).planeCoord;
+      float xe = collisionA->LumData->at(9+p).at(i);
+      float ye = collisionB->LumData->at(9+p).at(i);
+      e[p] = sqrt(pow(collisionB->Error->at(9+p).at(i),2) + pow(collisionA->Error->at(9+p).at(i),2));
+
+    }
+    string x1 = "X:" + to_string(collisionA->BCID->at(0).at(i));
+
+    const char* namex = x1.c_str();
+
+    TCanvas * canvasY = new TCanvas(namex,namex,200,340,500,300);
+
+    TGraphErrors* plot = new TGraphErrors(9,x,y,0,e);
+    TF1* function = new TF1("h1","gaus",-1,1);
+    plot->SetTitle(namex);
+    plot->Fit("h1","L");
+
+    Float_t temp = y[point] - function->Eval(x[point]);
+    distance->push_back(temp);
+
+    delete canvasY;
+
+  }
+
+  TCanvas * canvas = new TCanvas("namex","namex",200,340,500,300);
+  Float_t x1[collisionA->BCID->at(0).size()];
+  Float_t y1[collisionA->BCID->at(0).size()];
+
+  copy(distance->begin(), distance->end(), y1);
+  copy(collisionA->BCID->at(0).begin(), collisionA->BCID->at(0).end(), x1);
+
+  TGraph* plot = new TGraph(collisionA->BCID->size()*10,x1,y1);
+  plot->SetTitle("ErrorDistanceComparison");
+
+
+  plot->SetMarkerStyle(18);
+  plot->SetMarkerSize(0.3);
+  plot->SetMarkerColor(2);
+
+  plot->Draw("AP");
+
+
+  writer->Write(canvas);
+
+
+}
 
 
 

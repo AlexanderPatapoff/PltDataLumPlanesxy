@@ -37,11 +37,15 @@ void Init(string fileName){
 //  PlotWidthXY(beamA,beamB,&collisionA,&collisionB,iobuffer);
   //Densities(&collisionA,&collisionB,81,183,0,iobuffer);
 
-  PlotChi2_XY(beamA,beamB,&collisionA,&collisionB,iobuffer);
-  PlotChi2_XY_DoubleGuas(beamA,beamB,&collisionA,&collisionB,iobuffer);
+  //PlotChi2_XY(beamA,beamB,&collisionA,&collisionB,iobuffer);
+  //PlotChi2_XY_DoubleGuas(beamA,beamB,&collisionA,&collisionB,iobuffer);
+  //DoubleGuass_Y(beamA,beamB,&collisionA,&collisionB,94,iobuffer);
 
   //PlotFitsXY(beamA,beamB,&collisionA,&collisionB,iobuffer);
   //PlotG(beamA,beamB,&collisionA,&collisionB,iobuffer);
+  MapErrors(beamA,beamB,&collisionA,&collisionB,iobuffer,0);
+  MapErrors(beamA,beamB,&collisionA,&collisionB,iobuffer,4);
+  MapErrors(beamA,beamB,&collisionA,&collisionB,iobuffer,8);
 
 
 
