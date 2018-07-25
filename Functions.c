@@ -1278,25 +1278,22 @@ void DoubleGuass_Y(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData
 
 }
 
-void Densities(CollisionData *collisionA,CollisionData *collisionB, int BCID_init, int BCID_fin,int point,TCanvasFileWriter* writer){
+void Densities(CollisionData *collisionA,CollisionData *collisionB, int size,int point,int point2,TCanvasFileWriter* writer){
   vector<Float_t> *density = new vector<Float_t>();
   vector<Int_t> * BCID = new vector<Int_t>();
   int lastIndex = -1;
   TCanvas * canvas = new TCanvas("test","ttt",200,340,500,300);
-  int size = BCID_fin - BCID_init;
 
 
-  for (size_t i = 0; i < size; i++) {
+  int i = 0;
+  while (size > collisionA->BCID->at(0).at(i)){
 
 
-    if(FindIndex<Int_t>(collisionA->BCID->at(0), i+BCID_init) != -1){
-      lastIndex++;
-      BCID->push_back(i + BCID_init);
-      int index = FindIndex<Int_t>(collisionA->BCID->at(0), i+BCID_init);
 
-      density->push_back(collisionA->LumData->at(point).at(index)/collisionA->LumData->at(4).at(index));
-      //cout <<density->at(lastIndex)<<endl;
-    }
+      BCID->push_back(collisionA->BCID->at(0).at(i));
+
+      density->push_back(collisionA->LumData->at(point).at(i)/collisionA->LumData->at(point2).at(i));
+      i++;
 
   }
 
@@ -1310,11 +1307,12 @@ void Densities(CollisionData *collisionA,CollisionData *collisionB, int BCID_ini
   }
 
   TGraph* plot = new TGraph(density->size()-1,z2,z1);
-  plot->SetTitle("DensityComparison");
+  string x = "Y DensityComparison:" + to_string(point) + "/" + to_string(point2);
+  plot->SetTitle(x.c_str());
 
 
   plot->SetMarkerStyle(18);
-  plot->SetMarkerSize(0.6);
+  plot->SetMarkerSize(0.3);
   plot->SetMarkerColor(2);
 
   plot->Draw("AP");
@@ -1370,18 +1368,18 @@ void PlotG(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData *collis
 
 };
 
-void MapErrors(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData *collisionA,CollisionData *collisionB,TCanvasFileWriter * writer, int point){
+void MapErrors(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData *collisionA,CollisionData *collisionB,int size, int point,TCanvasFileWriter * writer){
 
   vector<Float_t> *distance= new vector<Float_t>();
 
-  int size = collisionA->LumData->size()/2;
-  Float_t x[size], y[size],e[size];
+  int sizez = collisionA->LumData->size()/2;
+  Float_t x[sizez], y[sizez],e[sizez];
   for (size_t i = 0; i < collisionA->LumData->at(0).size(); i++) {
     for (size_t p = 0; p < collisionA->LumData->size()/2; p++) {
       x[p] = 0;
       y[p] = 0;
-      y[p] = collisionA->LumData->at(size+p).at(i);
-      x[p] = beamA->at(9+p).planeCoord-beamB->at(size+p).planeCoord;
+      y[p] = collisionA->LumData->at(sizez+p).at(i);
+      x[p] = beamA->at(9+p).planeCoord-beamB->at(sizez+p).planeCoord;
       float xe = collisionA->LumData->at(9+p).at(i);
       float ye = collisionB->LumData->at(9+p).at(i);
       e[p] = sqrt(pow(collisionB->Error->at(9+p).at(i),2) + pow(collisionA->Error->at(9+p).at(i),2));
@@ -1412,8 +1410,17 @@ void MapErrors(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData *co
   copy(distance->begin(), distance->end(), y1);
   copy(collisionA->BCID->at(0).begin(), collisionA->BCID->at(0).end(), x1);
 
-  TGraph* plot = new TGraph(collisionA->BCID->size()*10,x1,y1);
-  plot->SetTitle("ErrorDistanceComparison");
+  int temp = 0;
+  for (size_t z = 0; z < collisionA->BCID->at(0).size(); z++) {
+    if (collisionA->BCID->at(0).at(z) >= size){
+      z = collisionA->BCID->at(0).size();
+    }
+    temp++;
+  }
+
+  TGraph* plot = new TGraph(temp,x1,y1);
+  string f = "Y DistanceError:" + to_string(point);
+  plot->SetTitle(f.c_str());
 
 
   plot->SetMarkerStyle(18);
@@ -1427,6 +1434,7 @@ void MapErrors(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData *co
 
 
 }
+
 
 
 
