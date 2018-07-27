@@ -1320,6 +1320,50 @@ void Densities(CollisionData *collisionA,CollisionData *collisionB, int size,int
 
   writer->Write(canvas);
 
+
+
+
+
+
+  density = new vector<Float_t>();
+  BCID = new vector<Int_t>();
+  lastIndex = -1;
+   canvas = new TCanvas("test","ttt",200,340,500,300);
+
+
+  i = 0;
+  while (size > collisionA->BCID->at(0).at(i)){
+
+
+
+      BCID->push_back(collisionA->BCID->at(0).at(i));
+
+      density->push_back(collisionA->LumData->at(point+9).at(i)/collisionA->LumData->at(point2+9).at(i));
+      i++;
+
+  }
+
+  float z11[density->size()];
+  float z21[BCID->size()];
+
+  copy(density->begin(), density->end()-1, z11);
+  copy(BCID->begin(), BCID->end()-1, z21);
+
+
+  plot = new TGraph(density->size()-1,z21,z11);
+  x = "X DensityComparison:" + to_string(point) + "/" + to_string(point2);
+  plot->SetTitle(x.c_str());
+
+
+  plot->SetMarkerStyle(18);
+  plot->SetMarkerSize(0.3);
+  plot->SetMarkerColor(2);
+
+  plot->Draw("AP");
+
+
+  writer->Write(canvas);
+
 }
 
 
@@ -1375,6 +1419,139 @@ void MapErrors(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData *co
   int sizez = collisionA->LumData->size()/2;
   Float_t x[sizez], y[sizez],e[sizez];
   for (size_t i = 0; i < collisionA->LumData->at(0).size(); i++) {
+    for (size_t p = 0; p < sizez; p++) {
+      x[p] = 0;
+      y[p] = 0;
+      y[p] = collisionA->LumData->at(sizez+p).at(i);
+      x[p] = beamA->at(9+p).planeCoord-beamB->at(sizez+p).planeCoord;
+      float xe = collisionA->LumData->at(sizez+p).at(i);
+      float ye = collisionB->LumData->at(sizez+p).at(i);
+      e[p] = sqrt(pow(collisionB->Error->at(sizez+p).at(i),2) + pow(collisionA->Error->at(9+p).at(i),2));
+
+    }
+    string x1 = "X:" + to_string(collisionA->BCID->at(0).at(i));
+
+    const char* namex = x1.c_str();
+
+    TCanvas * canvasY = new TCanvas(namex,namex,200,340,500,300);
+
+    TGraphErrors* plot = new TGraphErrors(9,x,y,0,e);
+    TF1* function = new TF1("h1","gaus",-1,1);
+    plot->SetTitle(namex);
+    plot->Fit("h1","L");
+
+    Float_t temp = y[point] - function->Eval(x[point]);
+    distance->push_back(temp);
+
+    delete canvasY;
+
+  }
+
+  TCanvas * canvas = new TCanvas("namex","namex",200,340,500,300);
+  Float_t x1[collisionA->BCID->at(0).size()];
+  Float_t y1[collisionA->BCID->at(0).size()];
+
+  copy(distance->begin(), distance->end(), y1);
+  copy(collisionA->BCID->at(0).begin(), collisionA->BCID->at(0).end(), x1);
+
+  int temp = 0;
+  for (size_t z = 0; z < collisionA->BCID->at(0).size(); z++) {
+    if (collisionA->BCID->at(0).at(z) >= size){
+      z = collisionA->BCID->at(0).size();
+    }
+    temp++;
+  }
+
+  TGraph* plot = new TGraph(temp,x1,y1);
+  string f = "X DistanceError:" + to_string(point);
+  plot->SetTitle(f.c_str());
+
+
+  plot->SetMarkerStyle(18);
+  plot->SetMarkerSize(0.3);
+  plot->SetMarkerColor(2);
+
+  plot->Draw("AP");
+
+
+  writer->Write(canvas);
+
+
+
+
+
+  distance= new vector<Float_t>();
+
+  sizez = collisionA->LumData->size()/2;
+  for (size_t i = 0; i < collisionA->LumData->at(0).size(); i++) {
+    for (size_t p = 0; p < sizez; p++) {
+      x[p] = 0;
+      y[p] = 0;
+      y[p] = collisionA->LumData->at(p).at(i);
+      x[p] = beamA->at(9+p).planeCoord-beamB->at(p).planeCoord;
+      float xe = collisionA->LumData->at(p).at(i);
+      float ye = collisionB->LumData->at(p).at(i);
+      e[p] = sqrt(pow(collisionB->Error->at(p).at(i),2) + pow(collisionA->Error->at(p).at(i),2));
+
+    }
+    string x1 = "Y:" + to_string(collisionA->BCID->at(0).at(i));
+
+    const char* namex = x1.c_str();
+
+    TCanvas * canvasY = new TCanvas(namex,namex,200,340,500,300);
+
+    TGraphErrors* plot = new TGraphErrors(9,x,y,0,e);
+    TF1* function = new TF1("h1","gaus",-1,1);
+    plot->SetTitle(namex);
+    plot->Fit("h1","L");
+
+    Float_t temp = y[point] - function->Eval(x[point]);
+    distance->push_back(temp);
+
+    delete canvasY;
+
+  }
+
+  canvas = new TCanvas("namex","namex",200,340,500,300);
+  Float_t x12[collisionA->BCID->at(0).size()];
+  Float_t y12[collisionA->BCID->at(0).size()];
+
+  copy(distance->begin(), distance->end(), y12);
+  copy(collisionA->BCID->at(0).begin(), collisionA->BCID->at(0).end(), x12);
+
+  temp = 0;
+  for (size_t z = 0; z < collisionA->BCID->at(0).size(); z++) {
+    if (collisionA->BCID->at(0).at(z) >= size){
+      z = collisionA->BCID->at(0).size();
+    }
+    temp++;
+  }
+
+  plot = new TGraph(temp,x12,y12);
+  f = "Y DistanceError:" + to_string(point);
+  plot->SetTitle(f.c_str());
+
+
+  plot->SetMarkerStyle(18);
+  plot->SetMarkerSize(0.3);
+  plot->SetMarkerColor(2);
+
+  plot->Draw("AP");
+
+
+  writer->Write(canvas);
+
+
+}
+
+
+void AbsMapErrors(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData *collisionA,CollisionData *collisionB,int size, int point,TCanvasFileWriter * writer){
+
+  vector<Float_t> *distance= new vector<Float_t>();
+
+  int sizez = collisionA->LumData->size()/2;
+  Float_t x[sizez], y[sizez],e[sizez];
+  for (size_t i = 0; i < collisionA->LumData->at(0).size(); i++) {
     for (size_t p = 0; p < collisionA->LumData->size()/2; p++) {
       x[p] = 0;
       y[p] = 0;
@@ -1397,7 +1574,7 @@ void MapErrors(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData *co
     plot->Fit("h1","L");
 
     Float_t temp = y[point] - function->Eval(x[point]);
-    distance->push_back(temp);
+    distance->push_back(abs(temp));
 
     delete canvasY;
 
@@ -1437,7 +1614,217 @@ void MapErrors(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData *co
 
 
 
+void PlotWidthRangeXY(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData* collisionA, CollisionData* collisionB,int size,TCanvasFileWriter *writer){
 
+  vector<Double_t> * width = new vector<Double_t>(collisionA->LumData->at(0).size());
+  Float_t x[9], y[9];
+  for (size_t i = 0; i < collisionA->LumData->at(0).size(); i++) {
+    for (size_t p = 0; p < collisionA->LumData->size()/2; p++) {
+      x[p] = 0;
+      y[p] = 0;
+      y[p] = collisionA->LumData->at(9+p).at(i);
+      x[p] = beamA->at(9+p).planeCoord-beamB->at(9+p).planeCoord;
+
+
+    }
+    string x1 = "X:" + to_string(collisionA->BCID->at(0).at(i));
+
+    const char* namex = x1.c_str();
+
+    TCanvas * canvasY = new TCanvas(namex,namex,200,340,500,300);
+    TGraph* plot = new TGraph(9,x,y);
+    TF1* function = new TF1("h1","gaus",-1,1);
+    plot->SetTitle(namex);
+
+    plot->Draw("AP");
+    plot->Fit("h1","L");
+
+    plot->SetMarkerStyle(21);
+    plot->SetMarkerSize(3);
+    plot->SetMarkerColor(1);
+
+    plot->Draw("AP*");
+
+
+
+    width->at(i) = function->GetHistogram()->GetStdDev();
+
+    delete canvasY;
+
+  }
+  float z1[collisionA->BCID->at(0).size()];
+  float z2[collisionA->BCID->at(0).size()];
+
+  copy(width->begin(), width->end(), z1);
+  copy(collisionA->BCID->at(0).begin(), collisionA->BCID->at(0).end(), z2);
+  cout<<z1<<endl;
+  TCanvas * widthC = new TCanvas("WidthX","namex",200,340,500,300);
+  TGraph* plot = new TGraph(size,z2,z1);
+  plot->SetTitle("Width X");
+  plot->Draw("AP");
+
+  plot->SetMarkerStyle(18);
+  plot->SetMarkerSize(0.4);
+  plot->SetMarkerColor(2);
+  plot->Draw("AP");
+
+  writer->Write(widthC);
+
+
+
+
+
+
+
+  for (size_t i = 0; i < collisionA->LumData->at(0).size(); i++) {
+    for (size_t p = 0; p < collisionA->LumData->size()/2; p++) {
+      x[p] = 0;
+      y[p] = 0;
+      y[p] = collisionA->LumData->at(p).at(i);
+      x[p] = beamA->at(p).planeCoord-beamB->at(p).planeCoord;
+
+
+    }
+    string x1 = "Y:" + to_string(collisionA->BCID->at(0).at(i));
+
+    const char* namex = x1.c_str();
+
+    TCanvas * canvasY = new TCanvas(namex,namex,200,340,500,300);
+    TGraph* plot = new TGraph(9,x,y);
+    TF1* function = new TF1("h1","gaus",-1,1);
+    plot->SetTitle(namex);
+
+    plot->Draw("AP");
+    plot->Fit("h1","L");
+
+    plot->SetMarkerStyle(21);
+    plot->SetMarkerSize(3);
+    plot->SetMarkerColor(1);
+
+    plot->Draw("AP*");
+
+
+
+    width->at(i) = function->GetHistogram()->GetStdDev();
+
+    delete canvasY;
+
+  }
+
+  copy(width->begin(), width->end(), z1);
+  copy(collisionA->BCID->at(0).begin(), collisionA->BCID->at(0).end(), z2);
+
+  widthC = new TCanvas("WidthX","namex",200,340,500,300);
+  plot = new TGraph(size,z2,z1);
+  plot->SetTitle("Width Y");
+  plot->Draw("AP");
+
+  plot->SetMarkerStyle(18);
+  plot->SetMarkerSize(0.4);
+  plot->SetMarkerColor(2);
+  plot->Draw("AP");
+
+  writer->Write(widthC);
+
+
+}
+void PlotMeansRangeXY(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData* collisionA, CollisionData* collisionB,int size,TCanvasFileWriter *writer){
+
+  vector<Float_t> * mean = new vector<Float_t>(collisionA->LumData->at(0).size());
+  Float_t x[9], y[9];
+  cout << collisionA->LumData->size()<<endl;
+  for (size_t i = 0; i < collisionA->LumData->at(0).size(); i++) {
+    for (size_t p = 0; p < collisionA->LumData->size()/2; p++) {
+      x[p] = 0;
+      y[p] = 0;
+      y[p] = collisionA->LumData->at(9+p).at(i);
+      x[p] = beamA->at(9+p).planeCoord-beamB->at(9+p).planeCoord;
+
+
+    }
+    TCanvas * canvasY = new TCanvas("namey","namey",200,340,500,300);
+    TGraph* plot = new TGraph(9,x,y);
+    TF1* function = new TF1("h1","gaus",-1,1);
+    plot->SetTitle("Mean Test");
+
+    plot->Draw("AP*");
+    plot->Fit("h1","L");
+    plot->Draw("AP*");
+    //function->Draw("SAME");
+    //plot->Draw("AP*");
+    //function->Draw("SAME");
+    cout <<function->GetHistogram()->GetBarWidth()<<endl;
+    mean->at(i) = function->GetHistogram()->GetMean(1);
+    delete canvasY;
+
+  }
+
+
+
+  float z1[collisionA->BCID->at(0).size()];
+  float z2[collisionA->BCID->at(0).size()];
+
+    copy(mean->begin(), mean->end(), z1);
+    copy(collisionA->BCID->at(0).begin(), collisionA->BCID->at(0).end(), z2);
+    TCanvas * canvasY = new TCanvas("namey","namey",200,340,500,300);
+    TGraph* plot = new TGraph(size,z2,z1);
+
+    plot->SetTitle("MeanX by BCID");
+
+  //  plot->Draw("AP");
+    plot->SetMarkerStyle(20);
+    plot->SetMarkerSize(0.5);
+    plot->SetMarkerColor(2);
+    plot->Draw("AP");
+    writer->Write(canvasY);
+
+
+    mean = new vector<Float_t>(collisionA->LumData->at(0).size());
+    for (size_t i = 0; i < collisionA->LumData->at(0).size(); i++) {
+      for (size_t p = 0; p < collisionA->LumData->size()/2; p++) {
+        x[p] = 0;
+        y[p] = 0;
+        y[p] = collisionA->LumData->at(p).at(i);
+        x[p] = beamA->at(p).planeCoord-beamB->at(p).planeCoord;
+      }
+      TCanvas * canvasY = new TCanvas("namey","namey",200,340,500,300);
+      TGraph* plot = new TGraph(9,x,y);
+      TF1* function = new TF1("h1","gaus",-1,1);
+      plot->SetTitle("voidMean Test");
+
+      plot->Draw("AP*");
+      plot->Fit("h1","L");
+      plot->Draw("AP*");
+      //function->Draw("SAME");
+      //plot->Draw("AP*");
+      //function->Draw("SAME");
+      cout <<function->GetHistogram()->GetMean(1)<<endl;
+      mean->at(i) = function->GetHistogram()->GetMean(1);
+      delete canvasY;
+
+    }
+
+    copy(mean->begin(), mean->end(), z1);
+    copy(collisionA->BCID->at(0).begin(), collisionA->BCID->at(0).end(), z2);
+    canvasY = new TCanvas("namey","namey",200,340,500,300);
+    plot = new TGraph(size,z2,z1);
+
+    plot->SetTitle("MeanY by BCID");
+
+
+
+
+    //canvasY->cd(4);
+    plot->Draw("AP");
+    plot->SetMarkerStyle(20);
+    plot->SetMarkerSize(0.4);
+    plot->SetMarkerColor(2);
+    plot->Draw("AP");
+    writer->Write(canvasY);
+
+
+
+}
 
 
 

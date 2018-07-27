@@ -33,27 +33,22 @@ void Init(string fileName){
 
   iobuffer->OpenFile();
 
-  PlotMeansXY(beamA,beamB,&collisionA,&collisionB,iobuffer);
-  PlotWidthXY(beamA,beamB,&collisionA,&collisionB,iobuffer);
+  PlotMeansRangeXY(beamA,beamB,&collisionA,&collisionB,400,iobuffer);
+  PlotWidthRangeXY(beamA,beamB,&collisionA,&collisionB,400,iobuffer);
 
   for (size_t a = 0; a < 9; a++) {
-    for (size_t i = 0; i < 9; i++) {
-      Densities(&collisionA,&collisionB,3300,a,i,iobuffer);
-      MapErrors(beamA,beamB,&collisionA,&collisionB,3300,i,iobuffer);
-    }
-  }
-  for (size_t a = 0; a < 9; a++) {
-    for (size_t i = 0; i < 9; i++) {
-      Densities(&collisionA,&collisionB,3300,i,a,iobuffer);
-      MapErrors(beamA,beamB,&collisionA,&collisionB,3300,i,iobuffer);
-    }
+
+      
+      MapErrors(beamA,beamB,&collisionA,&collisionB,600,a,iobuffer);
+
   }
 
-  PlotChi2_XY(beamA,beamB,&collisionA,&collisionB,iobuffer);
-  PlotChi2_XY_DoubleGuas(beamA,beamB,&collisionA,&collisionB,iobuffer);
+
+  //PlotChi2_XY(beamA,beamB,&collisionA,&collisionB,iobuffer);
+  //PlotChi2_XY_DoubleGuas(beamA,beamB,&collisionA,&collisionB,iobuffer);
   //DoubleGuass_Y(beamA,beamB,&collisionA,&collisionB,94,iobuffer);
 
-  PlotFitsXY(beamA,beamB,&collisionA,&collisionB,iobuffer);
+  //PlotFitsXY(beamA,beamB,&collisionA,&collisionB,iobuffer);
   //PlotG(beamA,beamB,&collisionA,&collisionB,iobuffer);
 
 
