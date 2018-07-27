@@ -1,4 +1,4 @@
-
+#include <cmath>
 struct CollisionData{
   vector<vector<Int_t>>* BCID;
   vector<vector<Float_t>>* LumData;
@@ -12,11 +12,19 @@ struct BeamDataDesc{
   Float_t planeCoord;
   int beamnumber;
 };
+struct BeamDataPackages{
 
+};
 struct BeamDataHandlerDesc{
   Int_t scanSteps;
 };
-
+struct Fit{
+  TF1* fit;
+  void (*Stylization)(TGraphErrors*);
+  TGraphErrors* (*PlotTask)(BeamCollisionHandler*);
+  string description;
+  bool isFitted;
+}
 class TCanvasFileWriter{
   private:
   string fileName;
@@ -261,7 +269,27 @@ class BeamDataHandler{
 
   }
 
-  void sortBeamData(){
+  Int_t GetNSteps(){
+    return dataHandlerDesc.scanSteps;
+  }
+
+  Int_t GetNCollisions(){
+    return collision.BCID->at(0).size();
+  }
+
+  Float_t GetLumDataAt(int step,int index){
+    return collision.LumData->at(step).at(index);
+  }
+
+  Int_t GetBCIDAt(int step, int index){
+    return collision.BCID->at(step).at(index);
+  }
+
+  Float_t GetErrorAt(int step, int index){
+    return collision.Error->at(step).at(index);
+  }
+  private:
+  void SortBeamData(){
 
 
     string number;
@@ -293,7 +321,7 @@ class BeamDataHandler{
     ResetTree();
   };
 
-  void sortCollisionDataLum(){
+  void SortCollisionDataLum(){
 
     string temp;
     if(beamNumber ==0){temp = "lucBiHitOR_BunchInstLumi";}else{temp = "lucBi2HitOR_BunchInstLumi";}
@@ -312,7 +340,7 @@ class BeamDataHandler{
 
   };
 
-  void sortCollisionDataBCID(){
+  void SortCollisionDataBCID(){
 
     cout << "Retrieving B1BCIDs" << endl;
     ResetTree();
@@ -330,7 +358,7 @@ class BeamDataHandler{
 
   };
 
-  void sortCollisionError(){
+  void SortCollisionError(){
 
     collision.Error = new vector<vector<Float_t>> (dataHandlerDesc.scanSteps, vector<Float_t>(collision.BCID->at(0).size()));
 
@@ -369,6 +397,7 @@ class BeamDataHandler{
   void ResetTree(){
     tree->GetEntry(0);
   };
+
   void printBeamDataDesc(){
 
     cout <<"Scan Run Number : ScanLumBlock Number : Scan Step: Plane : PlaneCoord" << endl;
@@ -384,14 +413,140 @@ class BeamDataHandler{
 };
 
 class BeamCollisionHandler{
+  vector<void (*)(BeamCollisionHandler*)> tasks;
   BeamDataHandler * beamA;
   BeamDataHandler * beamB;
+  vector<Fit> fits;
+  Fit currentFit;
+
+
+
+
   public:
+  CollisionData collision;
+
+
   BeamCollisionHandler(BeamDataHandler * beamA, BeamDataHandler * beamB){
     this->beamA = beamA;
     this->beamB = beamB;
 
   };
 
+  void AddTask(void (*function)(BeamCollisionHandler*)){
+    tasks.push_back(function);
+  }
 
+  void DefineFitFunction(Fit (*DefineFit)()){
+    setCurrentFit((*DefineFit)());
+  }
+
+  void ExcecuteTasks(){
+    for (size_t i = 0; i < tasks.size(); i++) {
+      tasks.at(i)(this);
+    }
+
+  }
+
+  void ReCalculateErrors(Float_t(*ErrorFunction)(Float_t,Float_t)){
+
+    Int_t steps = beamA->GetNSteps();
+    Int_t nCollisions = beamA->GetNCollisions();
+
+
+    collision.Error = new vector<vector<Float_t>>(steps,vector<Float_t>(nCollisions));
+
+
+    for (size_t i = 0; i < steps; i++) {
+      for (size_t p = 0; p < nCollisions; p++) {
+
+        Float_t tempError = ErrorFunction(beamA->GetLumDataAt(i,p),beamB->GetLumDataAt(i,p));
+        collision.Error->at(i).at(p) = tempError;
+
+      }
+    }
+
+    (*ErrorFunction);
+
+
+  }
+
+  void ReCalculateLums(Float_t(*LumFunction)(Float_t,Float_t)){
+
+    Int_t steps = beamA->GetNSteps();
+    Int_t nCollisions = beamA->GetNCollisions();
+
+
+    collision.LumData = new vector<vector<Float_t>>(steps,vector<Float_t>(nCollisions));
+
+
+    for (size_t i = 0; i < steps; i++) {
+      for (size_t p = 0; p < nCollisions; p++) {
+
+        Float_t tempLumData = LumFunction(beamA->GetLumDataAt(i,p),beamB->GetLumDataAt(i,p));
+        collision.Error->at(i).at(p) = tempLumData;
+
+      }
+    }
+
+    (*LumFunction);
+
+  }
+
+
+  void PlotCurrentFit(){
+    currentFit->
+  }
+
+  private:
+
+
+  void CollideBeams(){
+    Int_t steps = beamA->GetNSteps();
+    Int_t nCollisions = beamA->GetNCollisions();
+
+
+    collision.LumData = new vector<vector<Float_t>>(steps, vector<Float_t>(nCollisions));
+    collision.BCID = new vector<vector<Int_t>>(steps, vector<Int_t>(nCollisions));
+    collision.Error = new vector<vector<Float_t>>(steps,vector<Float_t>(nCollisions));
+
+
+    for (size_t i = 0; i < steps; i++) {
+      for (size_t p = 0; p < nCollisions; p++) {
+
+        Float_t tempLumData = (beamA->GetLumDataAt(i,p) + beamB->GetLumDataAt(i,p))/2;
+        collision.LumData->at(i).at(p) = tempLumData;
+
+        collision.BCID->at(i).at(p) = beamA->GetBCIDAt(i,p);
+
+        Float_t tempErrorData = sqrt(pow(beamB->GetErrorAt(i,p),2) + pow(beamA->GetErrorAt(i,p),2));
+        collision.Error->at(i).at(p) = tempErrorData;
+
+      }
+    }
+  }
+
+  TF1* FitFunction(){
+    return NULL;
+  }
+
+  void setCurrentFit(Fit newFit){
+    fits.push_back(currentFit);
+    currentFit = newFit;
+  }
+
+  void Sytlization(TGraph* plot){
+    plot->SetMarkerStyle(18);
+    plot->SetMarkerSize(0.3);
+    plot->SetMarkerColor(1);
+  }
 };
+
+
+
+
+
+
+
+
+
+//
