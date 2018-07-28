@@ -549,7 +549,9 @@ class SingleGaussFunction:Function{
 }
 
 class DoubleGaussFunction:Function{
+  Float_t widthA,widthB;
 
+  TF1* gaussA, gaussB;
 
   DoubleGaussFunction(string name,Float_t range) :(name,range){
 
@@ -582,6 +584,12 @@ class DoubleGaussFunction:Function{
     p3 = function->GetParameter(3);
     p4 = function->GetParameter(4);
     //cdof2 = (doubleGuass->chi2()/max(f))
+    //
+    widthA = (p2/(1-p3+p3*p4));
+    widthB = (p2*p4/(1-p3+p3*p4));
+
+
+    
   }
 
   void override InitializeFunction(){
@@ -590,8 +598,18 @@ class DoubleGaussFunction:Function{
   }
 
   Float_t GetWidthA(){
-    return 
+    return widthA;
   }
+
+  Float_t GetWidthB(){
+    return widthB;
+  }
+
+  Float_t GetABsDifferenceWidths(){
+    return abs(widthA-widthB);
+  }
+
+  Float_t GetIntegral
 }
 
 
