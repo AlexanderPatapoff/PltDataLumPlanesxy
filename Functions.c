@@ -952,19 +952,19 @@ void PlotChi2_XY(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData *
   writer->Write(canvas);
 
 
-  chai2 = new vector<Float_t>();
+  vector<Float_t>* chai2x = new vector<Float_t>();
   for (size_t c = 0; c < collisionA->BCID->at(0).size(); c++) {
     /* code */
     float x[size];
     float y[size];
     float e[size];
     float zero[size];
-    for (size_t i = 9; i < size*2; i++) {
-      x[i] = beamA->at(i).planeCoord-beamB->at(i).planeCoord;
-      y[i] = (collisionA->LumData->at(i).at(c) + collisionB->LumData->at(i).at(c))/2;
-      float xe = collisionA->LumData->at(i).at(c);
-      float ye = collisionB->LumData->at(i).at(c);
-      e[i] = sqrt(pow((xe/2),2)*pow(collisionB->Error->at(i).at(c),2) + pow((ye/2),2)*pow(collisionA->Error->at(i).at(c),2));
+    for (size_t i = 0; i < size; i++) {
+      x[i] = beamA->at(i+size).planeCoord-beamB->at(i+size).planeCoord;
+      y[i] = (collisionA->LumData->at(i+size).at(c) + collisionB->LumData->at(i+size).at(c))/2;
+      float xe = collisionA->LumData->at(i+size).at(c);
+      float ye = collisionB->LumData->at(i+size).at(c);
+      e[i] = sqrt(pow((xe/2),2)*pow(collisionB->Error->at(i+size).at(c),2) + pow((ye/2),2)*pow(collisionA->Error->at(i+size).at(c),2));
     }
 
 
@@ -977,8 +977,7 @@ void PlotChi2_XY(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData *
     plot->Draw("AP");
 
 
-    chai2->push_back(plot->Chisquare(function));
-    cout << chai2->at(c) << ",";
+    chai2x->push_back(plot->Chisquare(function));
     delete canvas;
   }
 
@@ -987,7 +986,7 @@ void PlotChi2_XY(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData *
   float z22[collisionA->BCID->at(0).size()];
   float z2e2[collisionA->BCID->at(0).size()];
 
-  copy(chai2->begin(), chai2->end(), z2e2);
+  copy(chai2x->begin(), chai2x->end(), z2e2);
   copy(collisionA->BCID->at(0).begin(), collisionA->BCID->at(0).end(), z22);
 
   canvas = new TCanvas("test","ttt",200,340,500,300);
@@ -1100,9 +1099,9 @@ void PlotChi2_XY_DoubleGuas(vector<BeamData> *beamA,vector<BeamData> *beamB,Coll
 
 
 
-  chi2 = new vector<Float_t>();
 
-  count = collisionA->BCID->at(0).size();
+  vector<Float_t> *chi2x = new vector<Float_t>();
+
   for (size_t index = 0; index < count; index++) {
       /* code */
 
@@ -1110,12 +1109,12 @@ void PlotChi2_XY_DoubleGuas(vector<BeamData> *beamA,vector<BeamData> *beamB,Coll
     float y[size];
     float e[size];
 
-    for (size_t i = size; i < size*2; i++) {
-      x[i] = beamA->at(i).planeCoord-beamB->at(i).planeCoord;
-      y[i] = (collisionA->LumData->at(i).at(index) + collisionB->LumData->at(i).at(index))/2;
-      float xe = collisionA->LumData->at(i).at(index);
-      float ye = collisionB->LumData->at(i).at(index);
-      e[i] = sqrt(pow((xe/2),2)*pow(collisionB->Error->at(i).at(index),2) + pow((ye/2),2)*pow(collisionA->Error->at(i).at(index),2));
+    for (size_t i = 0; i < size; i++) {
+      x[i] = beamA->at(i+size).planeCoord-beamB->at(i+size).planeCoord;
+      y[i] = (collisionA->LumData->at(i+size).at(index) + collisionB->LumData->at(i+size).at(index))/2;
+      float xe = collisionA->LumData->at(i+size).at(index);
+      float ye = collisionB->LumData->at(i+size).at(index);
+      e[i] = sqrt(pow((xe/2),2)*pow(collisionB->Error->at(i+size).at(index),2) + pow((ye/2),2)*pow(collisionA->Error->at(i+size).at(index),2));
     }
 
 
@@ -1162,34 +1161,35 @@ void PlotChi2_XY_DoubleGuas(vector<BeamData> *beamA,vector<BeamData> *beamB,Coll
     p4 = doubleGuass->GetParameter(4);
     //cdof2 = (doubleGuass->chi2()/max(f))
 
-    chi2->push_back(plot->Chisquare(doubleGuass));
+    chi2x->push_back(plot->Chisquare(doubleGuass));
     //delete canvas;
 
   }
 
+
   float z22[collisionA->BCID->at(0).size()];
   float z2e2[collisionA->BCID->at(0).size()];
 
-  copy(chi2->begin(), chi2->end(), z2e2);
+
+  copy(chi2x->begin(), chi2x->end(), z2e2);
   copy(collisionA->BCID->at(0).begin(), collisionA->BCID->at(0).end(), z22);
 
-  TCanvas * can = new TCanvas("test","ttt",200,340,500,300);
+  canvasF = new TCanvas("test","ttt",200,340,500,300);
 
-  TGraph *plotFs = new TGraph(collisionA->BCID->at(0).size(),z2,z2e);
+  plotF = new TGraph(collisionA->BCID->at(0).size(),z22,z2e2);
 
-  plotFs->SetTitle("Chi2 DoubleGuass X");
-  plotFs->SetMarkerStyle(18);
-  plotFs->SetMarkerSize(0.3);
-  plotFs->SetMarkerColor(2);
+  plotF->SetTitle("Chi2 DoubleGuass X");
+  plotF->SetMarkerStyle(18);
+  plotF->SetMarkerSize(0.3);
+  plotF->SetMarkerColor(2);
 
-  plotFs->Draw("AP");
+  plotF->Draw("AP");
 
-  writer->Write(can);
+  writer->Write(canvasF);
 
 
 
-  delete can;
-
+  delete canvasF;
 
 
 
@@ -1825,6 +1825,452 @@ void PlotMeansRangeXY(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionD
 
 
 }
+
+void PlotChi2_XY_DoubleGuas_CompareWidths(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData *collisionA,CollisionData *collisionB,TCanvasFileWriter * writer){
+
+  int size = 9;
+  vector<Float_t> *widthDifference = new vector<Float_t>();
+
+  int count = collisionA->BCID->at(0).size();
+  for (size_t index = 0; index < count; index++) {
+      /* code */
+
+    float x[size];
+    float y[size];
+    float e[size];
+
+    for (size_t i = 0; i < size; i++) {
+      x[i] = beamA->at(i).planeCoord-beamB->at(i).planeCoord;
+      y[i] = (collisionA->LumData->at(i).at(index) + collisionB->LumData->at(i).at(index))/2;
+      float xe = collisionA->LumData->at(i).at(index);
+      float ye = collisionB->LumData->at(i).at(index);
+      e[i] = sqrt(pow((xe/2),2)*pow(collisionB->Error->at(i).at(index),2) + pow((ye/2),2)*pow(collisionA->Error->at(i).at(index),2));
+    }
+
+
+
+    //TCanvas * canvas = new TCanvas("test","ttt",200,340,500,300);
+    TGraphErrors* plot = new TGraphErrors(size,x,y,0,e);
+    plot->SetTitle("DoubleGuass_comparison");
+
+    //0 - height
+    //1 - Mean
+    //2 - capsigma (Generalize width)
+    //3 - fraction of 2nd Gaussian
+    //4 - multiplier of second width
+    TF1* doubleGuass = new TF1("doubleGuass","[0]*( (1-[3])*exp(-0.5*((x-[1])/([2]/(1-[3]+[3]*[4])))**2) + [3]*exp(-0.5*((x-[1])/([2]*[4]/(1-[3]+[3]*[4])))**2))",-1,1);
+    TF1 * fit = new TF1("h1","gaus",-1,1);
+
+    plot->SetMarkerStyle(21);
+    plot->SetMarkerSize(0.6);
+    plot->SetMarkerColor(1);
+    //plot->Draw("AP");
+
+    plot->Fit("h1");
+
+    float p0,p1,p2,p3,p4,cdof2;
+    p0 = fit->GetParameter(0);
+    p1 = fit->GetParameter(1);
+    p2 = fit->GetParameter(2);
+
+
+    doubleGuass->SetParameter(0,p0);
+    doubleGuass->SetParameter(1,p1);
+    doubleGuass->SetParameter(2,p2);
+    doubleGuass->SetParameter(3,0.5);
+    doubleGuass->SetParameter(4,5.0);
+    doubleGuass->SetParLimits(4,1,1000);
+
+
+    plot->Fit("doubleGuass","MESQ");
+
+    p0 = doubleGuass->GetParameter(0);
+    p1 = doubleGuass->GetParameter(1);
+    p2 = doubleGuass->GetParameter(2);
+    p3 = doubleGuass->GetParameter(3);
+    p4 = doubleGuass->GetParameter(4);
+    //cdof2 = (doubleGuass->chi2()/max(f))
+
+
+    //delete canvas;
+    //([2]/(1-[3]+[3]*[4]))
+    Float_t width_01 = (p2/(1-p3+p3*p4));
+
+    //([2]*[4]/(1-[3]+[3]*[4]))
+    Float_t width_02 = (p2*p4/(1-p3+p3*p4));
+
+    widthDifference->push_back(abs(width_01-width_02));
+
+  }
+
+  float z2[collisionA->BCID->at(0).size()];
+  float z2e[collisionA->BCID->at(0).size()];
+
+  copy(widthDifference->begin(), widthDifference->end(), z2e);
+  copy(collisionA->BCID->at(0).begin(), collisionA->BCID->at(0).end(), z2);
+
+  TCanvas * canvasF = new TCanvas("test","ttt",200,340,500,300);
+  z2e[0] = 0.02;
+  TGraph *plotF = new TGraph(collisionA->BCID->at(0).size(),z2,z2e);
+
+  plotF->SetTitle("WidthDifference DoubleGuass Y");
+  plotF->SetMarkerStyle(18);
+  plotF->SetMarkerSize(0.3);
+  plotF->SetMarkerColor(2);
+
+  plotF->Draw("AP");
+
+  writer->Write(canvasF);
+
+
+
+  delete canvasF;
+
+
+
+
+
+  widthDifference = new vector<Float_t>();
+
+  count = collisionA->BCID->at(0).size();
+  for (size_t index = 0; index < count; index++) {
+      /* code */
+
+    float x[size];
+    float y[size];
+    float e[size];
+
+    for (size_t i = 0; i < size; i++) {
+      x[i] = beamA->at(i+size).planeCoord-beamB->at(i+size).planeCoord;
+      y[i] = (collisionA->LumData->at(i+size).at(index) + collisionB->LumData->at(i+size).at(index))/2;
+      float xe = collisionA->LumData->at(i+size).at(index);
+      float ye = collisionB->LumData->at(i+size).at(index);
+      e[i] = sqrt(pow((xe/2),2)*pow(collisionB->Error->at(i+size).at(index),2) + pow((ye/2),2)*pow(collisionA->Error->at(i+size).at(index),2));
+    }
+
+
+
+    //TCanvas * canvas = new TCanvas("test","ttt",200,340,500,300);
+    TGraphErrors* plot = new TGraphErrors(size,x,y,0,e);
+    plot->SetTitle("DoubleGuass_comparison");
+
+    //0 - height
+    //1 - Mean
+    //2 - capsigma (Generalize width)
+    //3 - fraction of 2nd Gaussian
+    //4 - multiplier of second width
+    TF1* doubleGuass = new TF1("doubleGuass","[0]*( (1-[3])*exp(-0.5*((x-[1])/([2]/(1-[3]+[3]*[4])))**2) + [3]*exp(-0.5*((x-[1])/([2]*[4]/(1-[3]+[3]*[4])))**2))",-1,1);
+    TF1 * fit = new TF1("h1","gaus",-1,1);
+
+    plot->SetMarkerStyle(21);
+    plot->SetMarkerSize(0.6);
+    plot->SetMarkerColor(1);
+    //plot->Draw("AP");
+
+    plot->Fit("h1");
+
+    float p0,p1,p2,p3,p4,cdof2;
+    p0 = fit->GetParameter(0);
+    p1 = fit->GetParameter(1);
+    p2 = fit->GetParameter(2);
+
+
+    doubleGuass->SetParameter(0,p0);
+    doubleGuass->SetParameter(1,p1);
+    doubleGuass->SetParameter(2,p2);
+    doubleGuass->SetParameter(3,0.5);
+    doubleGuass->SetParameter(4,5.0);
+    doubleGuass->SetParLimits(4,1,1000);
+
+
+    plot->Fit("doubleGuass","MESQ");
+
+    p0 = doubleGuass->GetParameter(0);
+    p1 = doubleGuass->GetParameter(1);
+    p2 = doubleGuass->GetParameter(2);
+    p3 = doubleGuass->GetParameter(3);
+    p4 = doubleGuass->GetParameter(4);
+    //cdof2 = (doubleGuass->chi2()/max(f))
+
+    //([2]/(1-[3]+[3]*[4]))
+    Float_t width_01 = (p2/(1-p3+p3*p4));
+
+    //([2]*[4]/(1-[3]+[3]*[4]))
+    Float_t width_02 = (p2*p4/(1-p3+p3*p4));
+
+    widthDifference->push_back(abs(width_01-width_02));
+
+  }
+
+  float z22[collisionA->BCID->at(0).size()];
+  float z2e2[collisionA->BCID->at(0).size()];
+
+  copy(widthDifference->begin(), widthDifference->end(), z2e2);
+  copy(collisionA->BCID->at(0).begin(), collisionA->BCID->at(0).end(), z22);
+
+  TCanvas * can = new TCanvas("test","ttt",200,340,500,300);
+  z2e2[0] = 0.02;
+  TGraph *plotFs = new TGraph(collisionA->BCID->at(0).size()-1,z22,z2e2);
+
+  plotFs->SetTitle("WidthDifference DoubleGuass X");
+  plotFs->SetMarkerStyle(18);
+  plotFs->SetMarkerSize(0.3);
+  plotFs->SetMarkerColor(2);
+
+  plotFs->Draw("AP");
+
+  writer->Write(can);
+
+
+
+  delete can;
+
+  cout <<z2e2[0]<<endl;
+
+
+
+
+
+};
+
+
+
+
+
+void PlotChi2_XY_DoubleGuas_AreaRatios(vector<BeamData> *beamA,vector<BeamData> *beamB,CollisionData *collisionA,CollisionData *collisionB,TCanvasFileWriter * writer){
+
+  int size = 9;
+  vector<Float_t> *widthDifference = new vector<Float_t>();
+
+  int count = collisionA->BCID->at(0).size();
+  for (size_t index = 0; index < count; index++) {
+      /* code */
+
+    float x[size];
+    float y[size];
+    float e[size];
+
+    for (size_t i = 0; i < size; i++) {
+      x[i] = beamA->at(i).planeCoord-beamB->at(i).planeCoord;
+      y[i] = (collisionA->LumData->at(i).at(index) + collisionB->LumData->at(i).at(index))/2;
+      float xe = collisionA->LumData->at(i).at(index);
+      float ye = collisionB->LumData->at(i).at(index);
+      e[i] = sqrt(pow((xe/2),2)*pow(collisionB->Error->at(i).at(index),2) + pow((ye/2),2)*pow(collisionA->Error->at(i).at(index),2));
+    }
+
+
+
+    //TCanvas * canvas = new TCanvas("test","ttt",200,340,500,300);
+    TGraphErrors* plot = new TGraphErrors(size,x,y,0,e);
+    plot->SetTitle("DoubleGuass_comparison");
+
+    //0 - height
+    //1 - Mean
+    //2 - capsigma (Generalize width)
+    //3 - fraction of 2nd Gaussian
+    //4 - multiplier of second width
+    TF1* doubleGuass = new TF1("doubleGuass","[0]*( (1-[3])*exp(-0.5*((x-[1])/([2]/(1-[3]+[3]*[4])))**2) + [3]*exp(-0.5*((x-[1])/([2]*[4]/(1-[3]+[3]*[4])))**2))",-1,1);
+    TF1 * fit = new TF1("h1","gaus",-1,1);
+
+    plot->SetMarkerStyle(21);
+    plot->SetMarkerSize(0.6);
+    plot->SetMarkerColor(1);
+    //plot->Draw("AP");
+
+    plot->Fit("h1");
+
+    float p0,p1,p2,p3,p4,cdof2;
+    p0 = fit->GetParameter(0);
+    p1 = fit->GetParameter(1);
+    p2 = fit->GetParameter(2);
+
+
+    doubleGuass->SetParameter(0,p0);
+    doubleGuass->SetParameter(1,p1);
+    doubleGuass->SetParameter(2,p2);
+    doubleGuass->SetParameter(3,0.5);
+    doubleGuass->SetParameter(4,5.0);
+    doubleGuass->SetParLimits(4,1,1000);
+
+
+    plot->Fit("doubleGuass","MESQ");
+
+    p0 = doubleGuass->GetParameter(0);
+    p1 = doubleGuass->GetParameter(1);
+    p2 = doubleGuass->GetParameter(2);
+    p3 = doubleGuass->GetParameter(3);
+    p4 = doubleGuass->GetParameter(4);
+    //cdof2 = (doubleGuass->chi2()/max(f))
+
+
+    //delete canvas;
+
+    TF1* gaussOne = new TF1("g1","[0]*( (1-[3])*exp(-0.5*((x-[1])/([2]/(1-[3]+[3]*[4])))**2))",-1,1);
+    gaussOne->SetParameter(0,p0);
+    gaussOne->SetParameter(1,p1);
+    gaussOne->SetParameter(2,p2);
+    gaussOne->SetParameter(3,p3);
+    gaussOne->SetParameter(4,p4);
+
+    Float_t Area1 = gaussOne->Integral(-0.1,0.1);
+
+
+    TF1* gaussTwo = new TF1("g2","[0]*([3]*exp(-0.5*((x-[1])/([2]*[4]/(1-[3]+[3]*[4])))**2))",-1,1);
+    gaussTwo->SetParameter(0,p0);
+    gaussTwo->SetParameter(1,p1);
+    gaussTwo->SetParameter(2,p2);
+    gaussTwo->SetParameter(3,p3);
+    gaussTwo->SetParameter(4,p4);
+
+    Float_t Area2 = gaussTwo->Integral(-0.1,0.1);
+
+    widthDifference->push_back(Area1/Area2);
+
+
+
+  }
+
+  float z2[collisionA->BCID->at(0).size()];
+  float z2e[collisionA->BCID->at(0).size()];
+
+  copy(widthDifference->begin(), widthDifference->end(), z2e);
+  copy(collisionA->BCID->at(0).begin(), collisionA->BCID->at(0).end(), z2);
+
+  TCanvas * canvasF = new TCanvas("test","ttt",200,340,500,300);
+  z2e[0] = 0.02;
+  TGraph *plotF = new TGraph(collisionA->BCID->at(0).size(),z2,z2e);
+
+  plotF->SetTitle("AreaRatio DoubleGuass Y");
+  plotF->SetMarkerStyle(18);
+  plotF->SetMarkerSize(0.3);
+  plotF->SetMarkerColor(2);
+
+  plotF->Draw("AP");
+
+  writer->Write(canvasF);
+
+
+
+  delete canvasF;
+
+
+
+
+
+  widthDifference = new vector<Float_t>();
+
+  count = collisionA->BCID->at(0).size();
+  for (size_t index = 0; index < count; index++) {
+      /* code */
+
+    float x[size];
+    float y[size];
+    float e[size];
+
+    for (size_t i = size; i < size*2; i++) {
+      x[i] = beamA->at(i).planeCoord-beamB->at(i).planeCoord;
+      y[i] = (collisionA->LumData->at(i).at(index) + collisionB->LumData->at(i).at(index))/2;
+      float xe = collisionA->LumData->at(i).at(index);
+      float ye = collisionB->LumData->at(i).at(index);
+      e[i] = sqrt(pow((xe/2),2)*pow(collisionB->Error->at(i).at(index),2) + pow((ye/2),2)*pow(collisionA->Error->at(i).at(index),2));
+    }
+
+
+
+    //TCanvas * canvas = new TCanvas("test","ttt",200,340,500,300);
+    TGraphErrors* plot = new TGraphErrors(size,x,y,0,e);
+    plot->SetTitle("DoubleGuass_comparison");
+
+    //0 - height
+    //1 - Mean
+    //2 - capsigma (Generalize width)
+    //3 - fraction of 2nd Gaussian
+    //4 - multiplier of second width
+    TF1* doubleGuass = new TF1("doubleGuass","[0]*( (1-[3])*exp(-0.5*((x-[1])/([2]/(1-[3]+[3]*[4])))**2) + [3]*exp(-0.5*((x-[1])/([2]*[4]/(1-[3]+[3]*[4])))**2))",-1,1);
+    TF1 * fit = new TF1("h1","gaus",-1,1);
+
+    plot->SetMarkerStyle(21);
+    plot->SetMarkerSize(0.6);
+    plot->SetMarkerColor(1);
+    //plot->Draw("AP");
+
+    plot->Fit("h1");
+
+    float p0,p1,p2,p3,p4,cdof2;
+    p0 = fit->GetParameter(0);
+    p1 = fit->GetParameter(1);
+    p2 = fit->GetParameter(2);
+
+
+    doubleGuass->SetParameter(0,p0);
+    doubleGuass->SetParameter(1,p1);
+    doubleGuass->SetParameter(2,p2);
+    doubleGuass->SetParameter(3,0.5);
+    doubleGuass->SetParameter(4,5.0);
+    doubleGuass->SetParLimits(4,1,1000);
+
+
+    plot->Fit("doubleGuass","MESQ");
+
+    p0 = doubleGuass->GetParameter(0);
+    p1 = doubleGuass->GetParameter(1);
+    p2 = doubleGuass->GetParameter(2);
+    p3 = doubleGuass->GetParameter(3);
+    p4 = doubleGuass->GetParameter(4);
+    //cdof2 = (doubleGuass->chi2()/max(f))
+
+    TF1* gaussOne = new TF1("g1","[0]*( (1-[3])*exp(-0.5*((x-[1])/([2]/(1-[3]+[3]*[4])))**2))",-1,1);
+    gaussOne->SetParameter(0,p0);
+    gaussOne->SetParameter(1,p1);
+    gaussOne->SetParameter(2,p2);
+    gaussOne->SetParameter(3,p3);
+    gaussOne->SetParameter(4,p4);
+
+    Float_t Area1 = gaussOne->Integral(-0.1,0.1);
+
+
+    TF1* gaussTwo = new TF1("g2","[0]*([3]*exp(-0.5*((x-[1])/([2]*[4]/(1-[3]+[3]*[4])))**2))",-1,1);
+    gaussTwo->SetParameter(0,p0);
+    gaussTwo->SetParameter(1,p1);
+    gaussTwo->SetParameter(2,p2);
+    gaussTwo->SetParameter(3,p3);
+    gaussTwo->SetParameter(4,p4);
+
+    Float_t Area2 = gaussTwo->Integral(-0.1,0.1);
+
+    widthDifference->push_back(Area1/Area2);
+
+  }
+
+  float z22[collisionA->BCID->at(0).size()];
+  float z2e2[collisionA->BCID->at(0).size()];
+
+  copy(widthDifference->begin(), widthDifference->end(), z2e2);
+  copy(collisionA->BCID->at(0).begin(), collisionA->BCID->at(0).end(), z22);
+
+  TCanvas * can = new TCanvas("test","ttt",200,340,500,300);
+  z2e2[0] = 0.02;
+  TGraph *plotFs = new TGraph(collisionA->BCID->at(0).size(),z22,z2e2);
+
+  plotFs->SetTitle("WidthDifference DoubleGuass X");
+  plotFs->SetMarkerStyle(18);
+  plotFs->SetMarkerSize(0.3);
+  plotFs->SetMarkerColor(2);
+
+  plotFs->Draw("AP");
+
+  writer->Write(can);
+
+
+
+  delete can;
+
+
+  cout << "\n \n \n \n \n \n \n \n \n " << z2e2[0] << "\n \n \n \n \n \n \n \n \n "<<endl;
+
+
+}
+
 
 
 

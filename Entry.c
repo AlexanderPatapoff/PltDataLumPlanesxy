@@ -33,19 +33,22 @@ void Init(string fileName){
 
   iobuffer->OpenFile();
 
-  PlotMeansRangeXY(beamA,beamB,&collisionA,&collisionB,400,iobuffer);
-  PlotWidthRangeXY(beamA,beamB,&collisionA,&collisionB,400,iobuffer);
+  //PlotMeansRangeXY(beamA,beamB,&collisionA,&collisionB,400,iobuffer);
+  //PlotWidthRangeXY(beamA,beamB,&collisionA,&collisionB,400,iobuffer);
 
   for (size_t a = 0; a < 9; a++) {
 
-      
-      MapErrors(beamA,beamB,&collisionA,&collisionB,600,a,iobuffer);
+
+      //MapErrors(beamA,beamB,&collisionA,&collisionB,600,a,iobuffer);
 
   }
 
+  //PlotChi2_XY_DoubleGuas_CompareWidths(beamA,beamB,&collisionA,&collisionB,iobuffer);
 
-  //PlotChi2_XY(beamA,beamB,&collisionA,&collisionB,iobuffer);
-  //PlotChi2_XY_DoubleGuas(beamA,beamB,&collisionA,&collisionB,iobuffer);
+
+  PlotChi2_XY(beamA,beamB,&collisionA,&collisionB,iobuffer);
+  PlotChi2_XY_DoubleGuas(beamA,beamB,&collisionA,&collisionB,iobuffer);
+  //PlotChi2_XY_DoubleGuas_AreaRatios(beamA,beamB,&collisionA,&collisionB,iobuffer);
   //DoubleGuass_Y(beamA,beamB,&collisionA,&collisionB,94,iobuffer);
 
   //PlotFitsXY(beamA,beamB,&collisionA,&collisionB,iobuffer);
