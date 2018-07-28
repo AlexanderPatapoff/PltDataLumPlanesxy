@@ -12,19 +12,10 @@ struct BeamDataDesc{
   Float_t planeCoord;
   int beamnumber;
 };
-struct BeamDataPackages{
-
-};
 struct BeamDataHandlerDesc{
   Int_t scanSteps;
 };
-struct Fit{
-  TF1* fit;
-  void (*Stylization)(TGraphErrors*);
-  TGraphErrors* (*PlotTask)(BeamCollisionHandler*);
-  string description;
-  bool isFitted;
-}
+
 class TCanvasFileWriter{
   private:
   string fileName;
@@ -123,30 +114,26 @@ template <class T> class Vector2D{
 };
 
 class Function{
+  protected:
   string name;
+  Float_t range;
   TF1* function;
   bool functionfitted = false;
 
   public:
-  Function(string name){
+  Function(string name, Float_t range){
 
     this->name = name;
+    this->range = range;
     IntializeFunction();
 
 
   };
-  virtual void IntializeFunction();
+  virtual void InitializeFunction();
 
-  void Fit(TGraph* plot){
-    plot->Fit(function, "MESQ");
-    functionfitted = true;
+  void virtual Fit(TGraph* plot){};
 
-  };
-
-  void Fit(TGraphErrors * plot){
-    plot->Fit(function, "MESQ");
-    functionfitted = true;
-  };
+  void virtual Fit(TGraphErrors * plot){};
 
   Float_t GetChi2(TGraph* plot,const char* opt){
     plot->Fit(function, opt);
@@ -158,15 +145,18 @@ class Function{
 
     return plot->Chisquare(function);
   };
+  Float_t GetWidth(){
+    function->GetHistogram()->GetStdDev();
+  }
+  Float_t GetMean(){
 
+    function->GetHistogram()->GetMean(1);
+  }
+  Float_t Integrate(Float_t x1, Float_t x2){
+    //TODO
+  }
   TF1* GetFunction(){
-    try{
-      if (functionfitted)return function;
-      else throw "Fucntion not Fitted";
-
-    }catch (char* c){
-      cout << c << endl;
-    }
+    return function;
   };
 };
 
@@ -413,14 +403,9 @@ class BeamDataHandler{
 };
 
 class BeamCollisionHandler{
-  vector<void (*)(BeamCollisionHandler*)> tasks;
+
   BeamDataHandler * beamA;
   BeamDataHandler * beamB;
-  vector<Fit> fits;
-  Fit currentFit;
-
-
-
 
   public:
   CollisionData collision;
@@ -431,21 +416,6 @@ class BeamCollisionHandler{
     this->beamB = beamB;
 
   };
-
-  void AddTask(void (*function)(BeamCollisionHandler*)){
-    tasks.push_back(function);
-  }
-
-  void DefineFitFunction(Fit (*DefineFit)()){
-    setCurrentFit((*DefineFit)());
-  }
-
-  void ExcecuteTasks(){
-    for (size_t i = 0; i < tasks.size(); i++) {
-      tasks.at(i)(this);
-    }
-
-  }
 
   void ReCalculateErrors(Float_t(*ErrorFunction)(Float_t,Float_t)){
 
@@ -492,13 +462,53 @@ class BeamCollisionHandler{
 
   }
 
+  CollisionData * GetCollision(){
+    return &collision;
+  }
 
-  void PlotCurrentFit(){
-    currentFit->
+  CollisionData GetCollisionX(){
+    CollisionData x;
+    int steps = collision.BCID->size()/2;
+    int nCollisions = collision.BCID->at(0).size();
+
+    x.LumData = new vector<vector<Float_t>>(steps, vector<Float_t>(nCollisions));
+    x.BCID = new vector<vector<Int_t>>(steps, vector<Int_t>(nCollisions));
+    x.Error = new vector<vector<Float_t>>(steps,vector<Float_t>(nCollisions));
+
+
+    for (size_t i = 0; i < steps; i++) {
+      for (size_t p = 0; p < nCollisions; p++) {
+        x.LumData->at(i).at(p) = collision.LumData->at(steps + i).at(p);
+        x.BCID->at(i).at(p) = collision.BCID->at(steps + i).at(p);
+        x.Error->at(i).at(p) = collision.Error->at(steps + i).at(p);
+      }
+    }
+
+    return x;
+  }
+
+  CollisionData GetCollisionY(){
+    CollisionData x;
+    int steps = collision.BCID->size()/2;
+    int nCollisions = collision.BCID->at(0).size();
+
+    x.LumData = new vector<vector<Float_t>>(steps, vector<Float_t>(nCollisions));
+    x.BCID = new vector<vector<Int_t>>(steps, vector<Int_t>(nCollisions));
+    x.Error = new vector<vector<Float_t>>(steps,vector<Float_t>(nCollisions));
+
+
+    for (size_t i = 0; i < steps; i++) {
+      for (size_t p = 0; p < nCollisions; p++) {
+        x.LumData->at(i).at(p) = collision.LumData->at(i).at(p);
+        x.BCID->at(i).at(p) = collision.BCID->at(i).at(p);
+        x.Error->at(i).at(p) = collision.Error->at(i).at(p);
+      }
+    }
+
+    return x;
   }
 
   private:
-
 
   void CollideBeams(){
     Int_t steps = beamA->GetNSteps();
@@ -525,23 +535,64 @@ class BeamCollisionHandler{
     }
   }
 
-  TF1* FitFunction(){
-    return NULL;
-  }
-
-  void setCurrentFit(Fit newFit){
-    fits.push_back(currentFit);
-    currentFit = newFit;
-  }
-
-  void Sytlization(TGraph* plot){
-    plot->SetMarkerStyle(18);
-    plot->SetMarkerSize(0.3);
-    plot->SetMarkerColor(1);
-  }
 };
 
+class SingleGaussFunction:Function{
+  SingleGaussFunction(string name,Float_t range) : (name,range){
 
+  }
+
+
+  void override InitializeFunction(){
+    function = new TF1*(this->name.c_str(), "gaus", -1*this->range, this->range);
+  }
+}
+
+class DoubleGaussFunction:Function{
+
+
+  DoubleGaussFunction(string name,Float_t range) :(name,range){
+
+  }
+
+  void override Fit(TGraphErrors* plot){
+    TF1 * fit = new TF1("h1","gaus",-1,1);
+
+    plot->Fit("h1","MESQ");
+
+    float p0,p1,p2,p3,p4,cdof2;
+    p0 = fit->GetParameter(0);
+    p1 = fit->GetParameter(1);
+    p2 = fit->GetParameter(2);
+
+
+    function->SetParameter(0,p0);
+    function->SetParameter(1,p1);
+    function->SetParameter(2,p2);
+    function->SetParameter(3,0.5);
+    function->SetParameter(4,5.0);
+    function->SetParLimits(4,1,1000);
+
+
+    plot->Fit("doubleGuass","MESQ");
+
+    p0 = function->GetParameter(0);
+    p1 = function->GetParameter(1);
+    p2 = function->GetParameter(2);
+    p3 = function->GetParameter(3);
+    p4 = function->GetParameter(4);
+    //cdof2 = (doubleGuass->chi2()/max(f))
+  }
+
+  void override InitializeFunction(){
+    function = new TF1*(this->name.c_str(), "[0]*( (1-[3])*exp(-0.5*((x-[1])/([2]/(1-[3]+[3]*[4])))**2) + [3]*exp(-0.5*((x-[1])/([2]*[4]/(1-[3]+[3]*[4])))**2))", -1*this->range, this->range);
+
+  }
+
+  Float_t GetWidthA(){
+    return 
+  }
+}
 
 
 
