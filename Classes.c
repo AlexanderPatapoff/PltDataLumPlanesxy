@@ -125,11 +125,11 @@ class Function{
 
     this->name = name;
     this->range = range;
-    IntializeFunction();
+    InitializeFunction();
 
 
   };
-  virtual void InitializeFunction();
+  virtual void InitializeFunction(){};
 
   void virtual Fit(TGraph* plot){};
 
@@ -146,14 +146,14 @@ class Function{
     return plot->Chisquare(function);
   };
   Float_t GetWidth(){
-    function->GetHistogram()->GetStdDev();
+    return function->GetHistogram()->GetStdDev();
   }
   Float_t GetMean(){
 
-    function->GetHistogram()->GetMean(1);
+    return function->GetHistogram()->GetMean(1);
   }
   Float_t Integrate(Float_t x1, Float_t x2){
-    //TODO
+    return -1;
   }
   TF1* GetFunction(){
     return function;
@@ -251,7 +251,7 @@ class BeamDataHandler{
     TCanvasFileWriter *ioHandler = new TCanvasFileWriter(exportFileName);
     TFile *filein = new TFile(fileLocation.c_str(),"READ");
     TTree *tree = (TTree*) filein->Get("vdMScanData;1");
-
+    
     dataHandlerDesc.scanSteps = tree->GetEntries();
     this->beamNumber = beamNumber;
 
@@ -264,7 +264,8 @@ class BeamDataHandler{
   }
 
   Int_t GetNCollisions(){
-    return collision.BCID->at(0).size();
+    Int_t temp = collision.BCID->size();
+    return 10;
   }
 
   Float_t GetLumDataAt(int step,int index){
@@ -414,6 +415,7 @@ class BeamCollisionHandler{
   BeamCollisionHandler(BeamDataHandler * beamA, BeamDataHandler * beamB){
     this->beamA = beamA;
     this->beamB = beamB;
+    CollideBeams();
 
   };
 
@@ -511,10 +513,12 @@ class BeamCollisionHandler{
   private:
 
   void CollideBeams(){
+    cout << "Retrieving steps"<<endl;
     Int_t steps = beamA->GetNSteps();
+    cout <<"Retrieving nCollisions"<<endl;
     Int_t nCollisions = beamA->GetNCollisions();
 
-
+    cout <<"Initializing vectors"<<endl;
     collision.LumData = new vector<vector<Float_t>>(steps, vector<Float_t>(nCollisions));
     collision.BCID = new vector<vector<Int_t>>(steps, vector<Int_t>(nCollisions));
     collision.Error = new vector<vector<Float_t>>(steps,vector<Float_t>(nCollisions));
@@ -524,12 +528,12 @@ class BeamCollisionHandler{
       for (size_t p = 0; p < nCollisions; p++) {
 
         Float_t tempLumData = (beamA->GetLumDataAt(i,p) + beamB->GetLumDataAt(i,p))/2;
-        collision.LumData->at(i).at(p) = tempLumData;
+        //collision.LumData->at(i).at(p) = tempLumData;
 
         collision.BCID->at(i).at(p) = beamA->GetBCIDAt(i,p);
 
         Float_t tempErrorData = sqrt(pow(beamB->GetErrorAt(i,p),2) + pow(beamA->GetErrorAt(i,p),2));
-        collision.Error->at(i).at(p) = tempErrorData;
+        //collision.Error->at(i).at(p) = tempErrorData;
 
       }
     }
@@ -538,26 +542,29 @@ class BeamCollisionHandler{
 };
 
 class SingleGaussFunction:Function{
-  SingleGaussFunction(string name,Float_t range) : (name,range){
+  SingleGaussFunction(string name,Float_t range) : Function(name,range){
 
   }
 
-
-  void override InitializeFunction(){
-    function = new TF1*(this->name.c_str(), "gaus", -1*this->range, this->range);
+  void Fit(TGraphErrors* plot){
+    plot->Fit(function, "MESQ");
   }
-}
+
+  void InitializeFunction(){
+    function = new TF1(this->name.c_str(), "gaus", (-1*range), range);
+  }
+};
 
 class DoubleGaussFunction:Function{
   Float_t widthA,widthB;
 
-  TF1* gaussA, gaussB;
+  TF1* gaussA, *gaussB;
 
-  DoubleGaussFunction(string name,Float_t range) :(name,range){
+  DoubleGaussFunction(string name,Float_t range) :Function(name,range){
 
   }
 
-  void override Fit(TGraphErrors* plot){
+  void Fit(TGraphErrors* plot){
     TF1 * fit = new TF1("h1","gaus",-1,1);
 
     plot->Fit("h1","MESQ");
@@ -578,6 +585,7 @@ class DoubleGaussFunction:Function{
 
     plot->Fit("doubleGuass","MESQ");
 
+
     p0 = function->GetParameter(0);
     p1 = function->GetParameter(1);
     p2 = function->GetParameter(2);
@@ -589,14 +597,30 @@ class DoubleGaussFunction:Function{
     widthB = (p2*p4/(1-p3+p3*p4));
 
 
-    
+
+    gaussA = new TF1("g1","[0]*( (1-[3])*exp(-0.5*((x-[1])/([2]/(1-[3]+[3]*[4])))**2))",-1,1);
+    gaussA->SetParameter(0,p0);
+    gaussA->SetParameter(1,p1);
+    gaussA->SetParameter(2,p2);
+    gaussA->SetParameter(3,p3);
+    gaussA->SetParameter(4,p4);
+
+    gaussB = new TF1("g2","[0]*([3]*exp(-0.5*((x-[1])/([2]*[4]/(1-[3]+[3]*[4])))**2))",-1,1);
+    gaussB->SetParameter(0,p0);
+    gaussB->SetParameter(1,p1);
+    gaussB->SetParameter(2,p2);
+    gaussB->SetParameter(3,p3);
+    gaussB->SetParameter(4,p4);
+
+
   }
 
-  void override InitializeFunction(){
-    function = new TF1*(this->name.c_str(), "[0]*( (1-[3])*exp(-0.5*((x-[1])/([2]/(1-[3]+[3]*[4])))**2) + [3]*exp(-0.5*((x-[1])/([2]*[4]/(1-[3]+[3]*[4])))**2))", -1*this->range, this->range);
+  void InitializeFunction(){
+    function = new TF1(this->name.c_str(), "[0]*( (1-[3])*exp(-0.5*((x-[1])/([2]/(1-[3]+[3]*[4])))**2) + [3]*exp(-0.5*((x-[1])/([2]*[4]/(1-[3]+[3]*[4])))**2))", -1*this->range, this->range);
 
   }
 
+  public:
   Float_t GetWidthA(){
     return widthA;
   }
@@ -609,8 +633,19 @@ class DoubleGaussFunction:Function{
     return abs(widthA-widthB);
   }
 
-  Float_t GetIntegral
-}
+  Float_t GetAreaRatio(Float_t x1, Float_t x2){
+
+
+    Float_t Area1 = gaussA->Integral(x1,x2);
+
+
+
+
+    Float_t Area2 = gaussB->Integral(x1,x2);
+
+    return Area2/Area1;
+  }
+};
 
 
 
