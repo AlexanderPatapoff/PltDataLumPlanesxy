@@ -3,6 +3,7 @@ struct CollisionData{
   vector<vector<Int_t>>* BCID;
   vector<vector<Float_t>>* LumData;
   vector<vector<Float_t>>* Error;
+  vector<Float_t> *Seperation;
 };
 struct BeamDataDesc{
   Float_t scanRun;
@@ -129,12 +130,14 @@ class Function{
 
 
   };
+
   virtual void InitializeFunction(){};
 
   void virtual Fit(TGraph* plot){};
 
   void virtual Fit(TGraphErrors * plot){};
 
+  vector<Float_t> virtual GetAllData(){return vector<Float_t>();};
   Float_t GetChi2(TGraph* plot,const char* opt){
     plot->Fit(function, opt);
 
@@ -182,7 +185,7 @@ class Plot{
 class Frame{
   Vector2D<Int_t> *size;
   int columns;
-  vector<Plot*> *plots;
+  vector<TGraphErrors*> plots;
 
   public:
 
@@ -191,42 +194,57 @@ class Frame{
     this->columns = columns;
   };
 
-  void AddPlot(Plot *plot){
-    plots->push_back(plot);
+  void AddPlot(TGraphErrors* plot){
+    plots.push_back(plot);
   };
 
   void Draw(){
 
     bool finished = false;
-    int row = 0;
-    int ySize = size->GetY()/(plots->size()/columns);
-    int yadjust = size->GetY() - ySize;
-    int xadjust = size->GetX() - size->GetX()/columns;
 
+
+
+    TCanvas *canvas = new TCanvas("Frame","Guassians",size->GetX(),size->GetY());
+    int y = plots.size()/columns;
+    cout <<y<<endl;
+    canvas->Divide(columns, y,0.01,0.01);
     int temp = 0;
-    while(!(temp == plots->size())){
-
-      for (size_t i = 0; i < columns; i++) {
-        TPad *pad = new TPad("Graph","",0,0,1,1);
-        pad->SetBBoxX2(xadjust);
-        pad->SetBBoxY2(yadjust);
-        pad->SetBBoxCenterX((size->GetX()/columns + size->GetX()/columns*i)/2);
-        pad->SetBBoxCenterY((ySize + row * ySize)/2);
-        pad->Draw();
-        pad->cd();
-
-        plots->at(i)->Draw();
-
-
-
+    for (size_t i = 0; i < y; i++) {
+      for (size_t p = 0; p < columns; p++) {
+        canvas->cd(temp+1);
+        //Stylize();
+        plots.at(temp)->Draw();
         temp++;
-
-
       }
-
-
-
     }
+
+  /*
+      TCanvas *c1 = new TCanvas("c1","multipads",900,700);
+     gStyle->SetOptStat(0);
+     c1->Divide(2,2,0,0);
+     TH2F *h1 = new TH2F("h1","test1",10,0,1,20,0,20);
+     TH2F *h2 = new TH2F("h2","test2",10,0,1,20,0,100);
+     TH2F *h3 = new TH2F("h3","test3",10,0,1,20,-1,1);
+     TH2F *h4 = new TH2F("h4","test4",10,0,1,20,0,1000);
+
+     c1->cd(1);
+     gPad->SetTickx(2);
+     plots.at(0)->Draw("AP*");
+
+     c1->cd(2);
+     gPad->SetTickx(2);
+     gPad->SetTicky(2);
+     h2->GetYaxis()->SetLabelOffset(0.01);
+     h2->Draw();
+
+     c1->cd(3);
+     h3->Draw();
+
+     c1->cd(4);
+     gPad->SetTicky(2);
+     h4->Draw();
+     */
+
 
   }
 
@@ -250,12 +268,18 @@ class BeamDataHandler{
     string fileLocation = "file:~/Downloads/HEPP/" + fileName+".root";
     TCanvasFileWriter *ioHandler = new TCanvasFileWriter(exportFileName);
     TFile *filein = new TFile(fileLocation.c_str(),"READ");
-    TTree *tree = (TTree*) filein->Get("vdMScanData;1");
-    
+    tree = (TTree*) filein->Get("vdMScanData;1");
+
     dataHandlerDesc.scanSteps = tree->GetEntries();
     this->beamNumber = beamNumber;
 
+    SortCollisionDataBCID();
+    SortBeamData();
+    SortCollisionDataLum();
+    SortCollisionError();
+    ResetTree();
 
+    filein->Close();
 
   }
 
@@ -264,8 +288,8 @@ class BeamDataHandler{
   }
 
   Int_t GetNCollisions(){
-    Int_t temp = collision.BCID->size();
-    return 10;
+    Int_t temp = collision.BCID->at(0).size();
+    return temp;
   }
 
   Float_t GetLumDataAt(int step,int index){
@@ -279,6 +303,10 @@ class BeamDataHandler{
   Float_t GetErrorAt(int step, int index){
     return collision.Error->at(step).at(index);
   }
+
+  Float_t GetSeperation(int step){
+    return beamDataDesc.at(step).planeCoord;
+  }
   private:
   void SortBeamData(){
 
@@ -286,7 +314,7 @@ class BeamDataHandler{
     string number;
     if(beamNumber ==0){number = "1";}else{ number = "2";}
 
-    cout<< "sorting Beam data " << endl;
+    cout<< "sorting Beam data: " << beamNumber <<endl;
     Int_t nentries = dataHandlerDesc.scanSteps;
     for (size_t i = 0; i < nentries; i++) {
       beamDataDesc.push_back(BeamDataDesc());
@@ -307,13 +335,13 @@ class BeamDataHandler{
       }
 
 
-      if (i%3 == 0) cout << "."<<endl;
+
     }
     ResetTree();
   };
 
   void SortCollisionDataLum(){
-
+    cout << "Retrieving Lum Data: " <<beamNumber << endl;
     string temp;
     if(beamNumber ==0){temp = "lucBiHitOR_BunchInstLumi";}else{temp = "lucBi2HitOR_BunchInstLumi";}
 
@@ -323,26 +351,28 @@ class BeamDataHandler{
 
 
     for (size_t i = 0; i < y; i++) {
+      tree->GetEntry(i);
       for (size_t p = 0; p < z; p++) {
         collision.LumData->at(i).at(p)= tree->GetLeaf(temp.c_str())->GetValue(collision.BCID->at(i).at(p));
+
       }
     }
+    ResetTree();
 
 
   };
 
   void SortCollisionDataBCID(){
 
-    cout << "Retrieving B1BCIDs" << endl;
+    cout << "Retrieving BCIDs: " <<beamNumber<< endl;
     ResetTree();
     Int_t nBaskets = tree->GetLeaf("LuminousBCIDs")->GetLen();
-
     collision.BCID = new vector<vector<Int_t>>(dataHandlerDesc.scanSteps, vector<Int_t>(nBaskets));
 
     for (size_t p = 0; p < dataHandlerDesc.scanSteps; p++) {
       tree->GetEntry(p);
       for (size_t i = 0; i < nBaskets; i++) {
-         collision.BCID->at(i).at(p) = i;
+         collision.BCID->at(p).at(i) = tree->GetLeaf("LuminousBCIDs")->GetValue(i);
       }
     }
     ResetTree();
@@ -350,7 +380,7 @@ class BeamDataHandler{
   };
 
   void SortCollisionError(){
-
+    cout << "Retrieving Errors: " << beamNumber <<endl;
     collision.Error = new vector<vector<Float_t>> (dataHandlerDesc.scanSteps, vector<Float_t>(collision.BCID->at(0).size()));
 
 
@@ -413,6 +443,7 @@ class BeamCollisionHandler{
 
 
   BeamCollisionHandler(BeamDataHandler * beamA, BeamDataHandler * beamB){
+    cout <<"Initializing Collision"<<endl;
     this->beamA = beamA;
     this->beamB = beamB;
     CollideBeams();
@@ -476,7 +507,7 @@ class BeamCollisionHandler{
     x.LumData = new vector<vector<Float_t>>(steps, vector<Float_t>(nCollisions));
     x.BCID = new vector<vector<Int_t>>(steps, vector<Int_t>(nCollisions));
     x.Error = new vector<vector<Float_t>>(steps,vector<Float_t>(nCollisions));
-
+    x.Seperation = new vector<Float_t>(steps);
 
     for (size_t i = 0; i < steps; i++) {
       for (size_t p = 0; p < nCollisions; p++) {
@@ -484,6 +515,7 @@ class BeamCollisionHandler{
         x.BCID->at(i).at(p) = collision.BCID->at(steps + i).at(p);
         x.Error->at(i).at(p) = collision.Error->at(steps + i).at(p);
       }
+      x.Seperation->at(i) = collision.Seperation->at(steps + i);
     }
 
     return x;
@@ -497,7 +529,7 @@ class BeamCollisionHandler{
     x.LumData = new vector<vector<Float_t>>(steps, vector<Float_t>(nCollisions));
     x.BCID = new vector<vector<Int_t>>(steps, vector<Int_t>(nCollisions));
     x.Error = new vector<vector<Float_t>>(steps,vector<Float_t>(nCollisions));
-
+    x.Seperation = new vector<Float_t>(steps);
 
     for (size_t i = 0; i < steps; i++) {
       for (size_t p = 0; p < nCollisions; p++) {
@@ -505,6 +537,8 @@ class BeamCollisionHandler{
         x.BCID->at(i).at(p) = collision.BCID->at(i).at(p);
         x.Error->at(i).at(p) = collision.Error->at(i).at(p);
       }
+
+      x.Seperation->at(i) = collision.Seperation->at(steps + i);
     }
 
     return x;
@@ -517,31 +551,41 @@ class BeamCollisionHandler{
     Int_t steps = beamA->GetNSteps();
     cout <<"Retrieving nCollisions"<<endl;
     Int_t nCollisions = beamA->GetNCollisions();
-
     cout <<"Initializing vectors"<<endl;
+
     collision.LumData = new vector<vector<Float_t>>(steps, vector<Float_t>(nCollisions));
     collision.BCID = new vector<vector<Int_t>>(steps, vector<Int_t>(nCollisions));
     collision.Error = new vector<vector<Float_t>>(steps,vector<Float_t>(nCollisions));
+    collision.Seperation = new vector<Float_t>(steps);
+    cout <<"Calculating Collision Data"<<endl;
 
 
     for (size_t i = 0; i < steps; i++) {
       for (size_t p = 0; p < nCollisions; p++) {
 
         Float_t tempLumData = (beamA->GetLumDataAt(i,p) + beamB->GetLumDataAt(i,p))/2;
-        //collision.LumData->at(i).at(p) = tempLumData;
+        collision.LumData->at(i).at(p) = tempLumData;
 
         collision.BCID->at(i).at(p) = beamA->GetBCIDAt(i,p);
 
         Float_t tempErrorData = sqrt(pow(beamB->GetErrorAt(i,p),2) + pow(beamA->GetErrorAt(i,p),2));
-        //collision.Error->at(i).at(p) = tempErrorData;
+        collision.Error->at(i).at(p) = tempErrorData;
 
       }
+      Float_t temp = beamA->GetSeperation(i) - beamB->GetSeperation(i);
+      collision.Seperation->at(i) = temp;
     }
   }
 
 };
 
-class SingleGaussFunction:Function{
+class SingleGaussFunction: public Function{
+
+  void InitializeFunction(){
+    function = new TF1(this->name.c_str(), "gaus", (-1*range), range);
+  }
+
+  public:
   SingleGaussFunction(string name,Float_t range) : Function(name,range){
 
   }
@@ -550,19 +594,20 @@ class SingleGaussFunction:Function{
     plot->Fit(function, "MESQ");
   }
 
-  void InitializeFunction(){
-    function = new TF1(this->name.c_str(), "gaus", (-1*range), range);
+  vector<Float_t> GetAllData(){
+    vector<Float_t> data;
+    data.push_back(GetMean());
+    data.push_back(GetWidth());
+    return data;
   }
 };
 
-class DoubleGaussFunction:Function{
+
+
+class DoubleGaussFunction: public Function{
   Float_t widthA,widthB;
 
   TF1* gaussA, *gaussB;
-
-  DoubleGaussFunction(string name,Float_t range) :Function(name,range){
-
-  }
 
   void Fit(TGraphErrors* plot){
     TF1 * fit = new TF1("h1","gaus",-1,1);
@@ -620,7 +665,24 @@ class DoubleGaussFunction:Function{
 
   }
 
+
   public:
+  DoubleGaussFunction(string name,Float_t range) :Function(name,range){
+
+  }
+
+  vector<Float_t> GetAllData(){
+    vector<Float_t> data;
+    data.push_back(GetMean());
+    data.push_back(GetWidth());
+    data.push_back(GetWidthA());
+    data.push_back(GetWidthB());
+    data.push_back(GetABsDifferenceWidths());
+    data.push_back(GetAreaRatio(-1,1));
+
+    return data;
+  }
+
   Float_t GetWidthA(){
     return widthA;
   }
@@ -647,6 +709,71 @@ class DoubleGaussFunction:Function{
   }
 };
 
+class Engine{
+  BeamCollisionHandler * collision;
+  Function * function;
+  CollisionData x,y;
+
+  public:
+
+  Engine(BeamCollisionHandler* collision,Function* function){
+    this->collision = collision;
+    this->function = function;
+
+    OrganizeData();
+    PlotData();
+
+  }
+  void OrganizeData(){
+    x = collision->GetCollisionX();
+    y = collision->GetCollisionY();
+  }
+
+  void PlotData(){
+    cout<<"plotting Data"<<endl;
+
+    Vector2D<Int_t> * point = new Vector2D<Int_t>(700,1000);
+    Frame frame(point, 2);
+
+
+
+    int steps = x.BCID->size();
+    int length = x.BCID->at(0).size();
+
+    for (size_t p = 0; p < 6; p++) {
+
+      Float_t x1[steps],y1[steps],e1[steps];
+      Float_t x2[steps],y2[steps],e2[steps];
+
+      for (size_t i = 0; i < steps; i++) {
+        x1[i] = x.Seperation->at(i);
+        y1[i] = x.LumData->at(i).at(p);
+        e1[i] = x.Error->at(i).at(p);
+
+        x2[i] = y.Seperation->at(i);
+        y2[i] = y.LumData->at(i).at(p);
+        e2[i] = y.Error->at(i).at(p);
+      }
+
+      TGraphErrors* LumPlot = new TGraphErrors(steps,x1,y1,0,e1);
+      frame.AddPlot(LumPlot);
+
+
+
+
+
+    }
+
+    frame.Draw();
+
+
+  }
+
+
+
+
+
+};
 
 
 
