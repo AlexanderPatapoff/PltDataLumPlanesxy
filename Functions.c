@@ -1025,12 +1025,16 @@ void PlotChi2_XY_DoubleGuas(vector<BeamData> *beamA,vector<BeamData> *beamB,Coll
     plot->SetMarkerColor(1);
     //plot->Draw("AP");
 
-    plot->Fit("h1");
+    plot->Fit("h1","MESQ");
 
-    float p0,p1,p2,p3,p4,cdof2;
+    float p0,p0e,p1,p1e,p2,p2e,p3,p4,cdof2;
     p0 = fit->GetParameter(0);
+    p0e = fit->GetParamError(0)
     p1 = fit->GetParameter(1);
+    p1e = fit->GetParamError(1);
     p2 = fit->GetParameter(2);
+    p2e = fit->GetParamError(2);
+
 
 
     doubleGuass->SetParameter(0,p0);
@@ -1044,8 +1048,11 @@ void PlotChi2_XY_DoubleGuas(vector<BeamData> *beamA,vector<BeamData> *beamB,Coll
     plot->Fit("doubleGuass","MESQ");
 
     p0 = doubleGuass->GetParameter(0);
+    doubleGauss->SetParamError(0,p0e)
     p1 = doubleGuass->GetParameter(1);
+    doubleGauss->SetParamError(1,p1e)
     p2 = doubleGuass->GetParameter(2);
+    doubleGauss->SetParamError(2,p2e)
     p3 = doubleGuass->GetParameter(3);
     p4 = doubleGuass->GetParameter(4);
     //cdof2 = (doubleGuass->chi2()/max(f))

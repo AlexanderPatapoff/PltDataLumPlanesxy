@@ -1,22 +1,40 @@
 #include <cmath>
+
+
+#define Absolute false
+#define PreceedErrors true
+#define zoom false
+
 struct CollisionData{
   vector<vector<Int_t>>* BCID;
-  vector<vector<Float_t>>* LumData;
-  vector<vector<Float_t>>* Error;
-  vector<Float_t> *Seperation;
+  vector<vector<Double_t>>* LumData;
+  vector<vector<Double_t>>* Error;
+  vector<Double_t> *Seperation;
 };
 struct BeamDataDesc{
-  Float_t scanRun;
+  Double_t scanRun;
   Int_t scanLumBlock;
   Int_t scanStep;
   char plane;
-  Float_t planeCoord;
+  Double_t planeCoord;
   int beamnumber;
 };
 struct BeamDataHandlerDesc{
   Int_t scanSteps;
 };
-
+struct GaussianDesc{
+  bool sGauss;
+  vector<Double_t> *chi2 = new vector<Double_t>();
+  vector<Double_t> *widthRatio = new vector<Double_t>();
+  vector<Double_t> *widthA = new vector<Double_t>();
+  vector<Double_t> *widthB = new vector<Double_t>();
+  vector<Double_t> *widthDifference = new vector<Double_t>();
+  vector<Double_t> *mean = new vector<Double_t>();
+  vector<Double_t> *areaRatio = new vector<Double_t>();
+  vector<Double_t> *width = new vector<Double_t>();
+  vector<Double_t> *peak = new vector<Double_t>();
+  vector<vector<Int_t>> *BCIDs;
+};
 class TCanvasFileWriter{
   private:
   string fileName;
@@ -116,13 +134,13 @@ template <class T> class Vector2D{
 
 class Function{
   protected:
-  string name;
-  Float_t range;
+  Double_t range;
   TF1* function;
   bool functionfitted = false;
 
   public:
-  Function(string name, Float_t range){
+  string name;
+  Function(string name, Double_t range){
 
     this->name = name;
     this->range = range;
@@ -137,25 +155,25 @@ class Function{
 
   void virtual Fit(TGraphErrors * plot){};
 
-  vector<Float_t> virtual GetAllData(){return vector<Float_t>();};
-  Float_t GetChi2(TGraph* plot,const char* opt){
+  vector<Double_t> virtual GetAllData(){return vector<Double_t>();};
+  Double_t GetChi2(TGraph* plot,const char* opt){
     plot->Fit(function, opt);
 
     return plot->Chisquare(function);
   };
-  Float_t GetChi2(TGraphErrors* plot,const char* opt){
+  Double_t GetChi2(TGraphErrors* plot,const char* opt){
     plot->Fit(function, opt);
 
     return plot->Chisquare(function);
   };
-  Float_t GetWidth(){
+  Double_t GetWidth(){
     return function->GetHistogram()->GetStdDev();
   }
-  Float_t GetMean(){
+  Double_t GetMean(){
 
     return function->GetHistogram()->GetMean(1);
   }
-  Float_t Integrate(Float_t x1, Float_t x2){
+  Double_t Integrate(Double_t x1, Double_t x2){
     return -1;
   }
   TF1* GetFunction(){
@@ -198,7 +216,7 @@ class Frame{
     plots.push_back(plot);
   };
 
-  void Draw(){
+  void Draw(TCanvasFileWriter* writer){
 
     bool finished = false;
 
@@ -206,18 +224,21 @@ class Frame{
 
     TCanvas *canvas = new TCanvas("Frame","Guassians",size->GetX(),size->GetY());
     int y = plots.size()/columns;
-    cout <<y<<endl;
     canvas->Divide(columns, y,0.01,0.01);
     int temp = 0;
     for (size_t i = 0; i < y; i++) {
       for (size_t p = 0; p < columns; p++) {
         canvas->cd(temp+1);
         //Stylize();
-        plots.at(temp)->Draw();
+        plots.at(temp)->Draw("AP");
         temp++;
       }
     }
 
+    writer->Write(canvas);
+
+
+    delete canvas;
   /*
       TCanvas *c1 = new TCanvas("c1","multipads",900,700);
      gStyle->SetOptStat(0);
@@ -247,6 +268,7 @@ class Frame{
 
 
   }
+
 
 
 };
@@ -292,7 +314,7 @@ class BeamDataHandler{
     return temp;
   }
 
-  Float_t GetLumDataAt(int step,int index){
+  Double_t GetLumDataAt(int step,int index){
     return collision.LumData->at(step).at(index);
   }
 
@@ -300,11 +322,11 @@ class BeamDataHandler{
     return collision.BCID->at(step).at(index);
   }
 
-  Float_t GetErrorAt(int step, int index){
+  Double_t GetErrorAt(int step, int index){
     return collision.Error->at(step).at(index);
   }
 
-  Float_t GetSeperation(int step){
+  Double_t GetSeperation(int step){
     return beamDataDesc.at(step).planeCoord;
   }
   private:
@@ -347,7 +369,7 @@ class BeamDataHandler{
 
     int y = dataHandlerDesc.scanSteps;
     int z = collision.BCID->at(0).size();
-    collision.LumData = new vector<vector<Float_t>> (y,vector<Float_t>(z));
+    collision.LumData = new vector<vector<Double_t>> (y,vector<Double_t>(z));
 
 
     for (size_t i = 0; i < y; i++) {
@@ -381,7 +403,7 @@ class BeamDataHandler{
 
   void SortCollisionError(){
     cout << "Retrieving Errors: " << beamNumber <<endl;
-    collision.Error = new vector<vector<Float_t>> (dataHandlerDesc.scanSteps, vector<Float_t>(collision.BCID->at(0).size()));
+    collision.Error = new vector<vector<Double_t>> (dataHandlerDesc.scanSteps, vector<Double_t>(collision.BCID->at(0).size()));
 
 
 
@@ -405,7 +427,7 @@ class BeamDataHandler{
 
         int BCID = collision.BCID->at(0).at(c);
         int Nt = 8;
-        Float_t f = rate->GetValue(BCID)/Nt;
+        Double_t f = rate->GetValue(BCID)/Nt;
         Double_t lumerror = 1./(sqrt(N->GetValue(0)* Nt))* (-1)/log(1-f)*sqrt(f/(1-f));
         if (lumerror == numeric_limits<float>::infinity()) lumerror = 1;
         collision.Error->at(i).at(c) = lumerror * collision.LumData->at(i).at(c);
@@ -450,19 +472,19 @@ class BeamCollisionHandler{
 
   };
 
-  void ReCalculateErrors(Float_t(*ErrorFunction)(Float_t,Float_t)){
+  void ReCalculateErrors(Double_t(*ErrorFunction)(Double_t,Double_t)){
 
     Int_t steps = beamA->GetNSteps();
     Int_t nCollisions = beamA->GetNCollisions();
 
 
-    collision.Error = new vector<vector<Float_t>>(steps,vector<Float_t>(nCollisions));
+    collision.Error = new vector<vector<Double_t>>(steps,vector<Double_t>(nCollisions));
 
 
     for (size_t i = 0; i < steps; i++) {
       for (size_t p = 0; p < nCollisions; p++) {
 
-        Float_t tempError = ErrorFunction(beamA->GetLumDataAt(i,p),beamB->GetLumDataAt(i,p));
+        Double_t tempError = ErrorFunction(beamA->GetLumDataAt(i,p),beamB->GetLumDataAt(i,p));
         collision.Error->at(i).at(p) = tempError;
 
       }
@@ -473,19 +495,19 @@ class BeamCollisionHandler{
 
   }
 
-  void ReCalculateLums(Float_t(*LumFunction)(Float_t,Float_t)){
+  void ReCalculateLums(Double_t(*LumFunction)(Double_t,Double_t)){
 
     Int_t steps = beamA->GetNSteps();
     Int_t nCollisions = beamA->GetNCollisions();
 
 
-    collision.LumData = new vector<vector<Float_t>>(steps,vector<Float_t>(nCollisions));
+    collision.LumData = new vector<vector<Double_t>>(steps,vector<Double_t>(nCollisions));
 
 
     for (size_t i = 0; i < steps; i++) {
       for (size_t p = 0; p < nCollisions; p++) {
 
-        Float_t tempLumData = LumFunction(beamA->GetLumDataAt(i,p),beamB->GetLumDataAt(i,p));
+        Double_t tempLumData = LumFunction(beamA->GetLumDataAt(i,p),beamB->GetLumDataAt(i,p));
         collision.Error->at(i).at(p) = tempLumData;
 
       }
@@ -504,10 +526,10 @@ class BeamCollisionHandler{
     int steps = collision.BCID->size()/2;
     int nCollisions = collision.BCID->at(0).size();
 
-    x.LumData = new vector<vector<Float_t>>(steps, vector<Float_t>(nCollisions));
+    x.LumData = new vector<vector<Double_t>>(steps, vector<Double_t>(nCollisions));
     x.BCID = new vector<vector<Int_t>>(steps, vector<Int_t>(nCollisions));
-    x.Error = new vector<vector<Float_t>>(steps,vector<Float_t>(nCollisions));
-    x.Seperation = new vector<Float_t>(steps);
+    x.Error = new vector<vector<Double_t>>(steps,vector<Double_t>(nCollisions));
+    x.Seperation = new vector<Double_t>(steps);
 
     for (size_t i = 0; i < steps; i++) {
       for (size_t p = 0; p < nCollisions; p++) {
@@ -526,10 +548,10 @@ class BeamCollisionHandler{
     int steps = collision.BCID->size()/2;
     int nCollisions = collision.BCID->at(0).size();
 
-    x.LumData = new vector<vector<Float_t>>(steps, vector<Float_t>(nCollisions));
+    x.LumData = new vector<vector<Double_t>>(steps, vector<Double_t>(nCollisions));
     x.BCID = new vector<vector<Int_t>>(steps, vector<Int_t>(nCollisions));
-    x.Error = new vector<vector<Float_t>>(steps,vector<Float_t>(nCollisions));
-    x.Seperation = new vector<Float_t>(steps);
+    x.Error = new vector<vector<Double_t>>(steps,vector<Double_t>(nCollisions));
+    x.Seperation = new vector<Double_t>(steps);
 
     for (size_t i = 0; i < steps; i++) {
       for (size_t p = 0; p < nCollisions; p++) {
@@ -553,26 +575,26 @@ class BeamCollisionHandler{
     Int_t nCollisions = beamA->GetNCollisions();
     cout <<"Initializing vectors"<<endl;
 
-    collision.LumData = new vector<vector<Float_t>>(steps, vector<Float_t>(nCollisions));
+    collision.LumData = new vector<vector<Double_t>>(steps, vector<Double_t>(nCollisions));
     collision.BCID = new vector<vector<Int_t>>(steps, vector<Int_t>(nCollisions));
-    collision.Error = new vector<vector<Float_t>>(steps,vector<Float_t>(nCollisions));
-    collision.Seperation = new vector<Float_t>(steps);
+    collision.Error = new vector<vector<Double_t>>(steps,vector<Double_t>(nCollisions));
+    collision.Seperation = new vector<Double_t>(steps);
     cout <<"Calculating Collision Data"<<endl;
 
 
     for (size_t i = 0; i < steps; i++) {
       for (size_t p = 0; p < nCollisions; p++) {
 
-        Float_t tempLumData = (beamA->GetLumDataAt(i,p) + beamB->GetLumDataAt(i,p))/2;
+        Double_t tempLumData = (beamA->GetLumDataAt(i,p) + beamB->GetLumDataAt(i,p))/2;
         collision.LumData->at(i).at(p) = tempLumData;
 
         collision.BCID->at(i).at(p) = beamA->GetBCIDAt(i,p);
 
-        Float_t tempErrorData = sqrt(pow(beamB->GetErrorAt(i,p),2) + pow(beamA->GetErrorAt(i,p),2));
+        Double_t tempErrorData = sqrt(pow(beamB->GetErrorAt(i,p),2) + pow(beamA->GetErrorAt(i,p),2));
         collision.Error->at(i).at(p) = tempErrorData;
 
       }
-      Float_t temp = beamA->GetSeperation(i) - beamB->GetSeperation(i);
+      Double_t temp = beamA->GetSeperation(i) - beamB->GetSeperation(i);
       collision.Seperation->at(i) = temp;
     }
   }
@@ -583,19 +605,20 @@ class SingleGaussFunction: public Function{
 
   void InitializeFunction(){
     function = new TF1(this->name.c_str(), "gaus", (-1*range), range);
+    cout<< "init Called"<<endl;
   }
 
   public:
-  SingleGaussFunction(string name,Float_t range) : Function(name,range){
-
+  SingleGaussFunction(string name,Double_t range) : Function(name,range){
+    InitializeFunction();
   }
 
   void Fit(TGraphErrors* plot){
     plot->Fit(function, "MESQ");
   }
 
-  vector<Float_t> GetAllData(){
-    vector<Float_t> data;
+  vector<Double_t> GetAllData(){
+    vector<Double_t> data;
     data.push_back(GetMean());
     data.push_back(GetWidth());
     return data;
@@ -605,9 +628,21 @@ class SingleGaussFunction: public Function{
 
 
 class DoubleGaussFunction: public Function{
-  Float_t widthA,widthB;
+  Double_t widthA,widthB;
 
   TF1* gaussA, *gaussB;
+
+
+  void InitializeFunction(){
+    function = new TF1(this->name.c_str(), "[0]*( (1-[3])*exp(-0.5*((x-[1])/([2]/(1-[3]+[3]*[4])))**2) + [3]*exp(-0.5*((x-[1])/([2]*[4]/(1-[3]+[3]*[4])))**2))", -1*this->range, this->range);
+
+  }
+
+
+  public:
+  DoubleGaussFunction(string name,Double_t range) :Function(name,range){
+    InitializeFunction();
+  }
 
   void Fit(TGraphErrors* plot){
     TF1 * fit = new TF1("h1","gaus",-1,1);
@@ -615,21 +650,37 @@ class DoubleGaussFunction: public Function{
     plot->Fit("h1","MESQ");
 
     float p0,p1,p2,p3,p4,cdof2;
+    float p0e,p1e,p2e;
+
+
     p0 = fit->GetParameter(0);
+
     p1 = fit->GetParameter(1);
+
     p2 = fit->GetParameter(2);
+
+  //  #if PreceedErrors
+      p0e = fit->GetParError(0);
+      p1e = fit->GetParError(1);
+      p2e = fit->GetParError(2);
+      function->SetParError(0,p0e);
+      function->SetParError(1,p1e);
+      function->SetParError(2,p2e);
+  //  #endif
 
 
     function->SetParameter(0,p0);
+    //function->SetParError(0,p0e);
     function->SetParameter(1,p1);
+    //function->SetParError(1,p1e);
     function->SetParameter(2,p2);
+    //function->SetParError(2,p2e);
     function->SetParameter(3,0.5);
     function->SetParameter(4,5.0);
-    function->SetParLimits(4,1,1000);
+    function->SetParLimits(4,0,1000);
 
 
-    plot->Fit("doubleGuass","MESQ");
-
+    plot->Fit(this->name.c_str(),"MESQ");
 
     p0 = function->GetParameter(0);
     p1 = function->GetParameter(1);
@@ -660,90 +711,206 @@ class DoubleGaussFunction: public Function{
 
   }
 
-  void InitializeFunction(){
-    function = new TF1(this->name.c_str(), "[0]*( (1-[3])*exp(-0.5*((x-[1])/([2]/(1-[3]+[3]*[4])))**2) + [3]*exp(-0.5*((x-[1])/([2]*[4]/(1-[3]+[3]*[4])))**2))", -1*this->range, this->range);
-
-  }
-
-
-  public:
-  DoubleGaussFunction(string name,Float_t range) :Function(name,range){
-
-  }
-
-  vector<Float_t> GetAllData(){
-    vector<Float_t> data;
+  vector<Double_t> GetAllData(){
+    vector<Double_t> data;
     data.push_back(GetMean());
     data.push_back(GetWidth());
     data.push_back(GetWidthA());
     data.push_back(GetWidthB());
-    data.push_back(GetABsDifferenceWidths());
+    data.push_back(GetWidthDifference());
     data.push_back(GetAreaRatio(-1,1));
 
     return data;
   }
 
-  Float_t GetWidthA(){
+  Double_t GetWidthA(){
     return widthA;
   }
 
-  Float_t GetWidthB(){
+  Double_t GetWidthB(){
     return widthB;
   }
 
-  Float_t GetABsDifferenceWidths(){
-    return abs(widthA-widthB);
+  Double_t GetWidthRation(){
+    return widthA/widthB;
   }
 
-  Float_t GetAreaRatio(Float_t x1, Float_t x2){
+  Double_t GetWidthDifference(){
+    return (widthA-widthB);
+  }
+
+  Double_t GetAreaRatio(Double_t x1, Double_t x2){
+
+#if Absolute
+    Double_t Area1 = abs(gaussA->Integral(x1,0));
+    Area1 += abs(gaussA->Integral(0,x2));
 
 
-    Float_t Area1 = gaussA->Integral(x1,x2);
+
+    Double_t Area2 = abs(gaussB->Integral(x1,0));
+    Area2 += abs(gaussB->Integral(0,x2));
+    #else
+    Double_t Area1 = gaussA->Integral(x1,x2);
+
+    Double_t Area2 = gaussB->Integral(x1,x2);
 
 
+#endif
 
+    return Area1/Area2;
 
-    Float_t Area2 = gaussB->Integral(x1,x2);
-
-    return Area2/Area1;
   }
 };
 
-class Engine{
+class AnalysisEngine{
   BeamCollisionHandler * collision;
   Function * function;
   CollisionData x,y;
+  TCanvasFileWriter* writer;
+  void (*Task)(GaussianDesc*,Function*,TGraphErrors*);
 
   public:
 
-  Engine(BeamCollisionHandler* collision,Function* function){
+  AnalysisEngine(BeamCollisionHandler* collision,Function* function,void (*TT)(GaussianDesc*,Function*,TGraphErrors*),string fileName){
     this->collision = collision;
     this->function = function;
-
+    this->Task = TT;
+    writer = new TCanvasFileWriter(fileName);
+    writer->OpenFile();
     OrganizeData();
     PlotData();
-
+    writer->CloseFile();
   }
+
+
+
+
+
   void OrganizeData(){
     x = collision->GetCollisionX();
     y = collision->GetCollisionY();
   }
 
+  Frame SortTaskData(GaussianDesc* x,int axis){
+    Vector2D<Int_t> * point;
+    string number;
+    if(x->sGauss){
+      point = new Vector2D<Int_t>(450,300);
+      }else{
+      point = new Vector2D<Int_t>(600,600);
+    }
+    if(axis ==0){number = "X";}else{number = "Y";}
+    Frame frame(point,2);
+    string temp;
+
+    Double_t bcid[x->peak->size()];
+    copy(x->BCIDs->at(0).begin(), x->BCIDs->at(0).end(), bcid);
+
+    TGraphErrors* peak = new TGraphErrors(x->peak->size(),bcid,x->peak->data(),0,0);
+    temp = "peak: " + number;
+    peak->SetTitle(temp.c_str());
+
+    TGraphErrors* mean = new TGraphErrors(x->mean->size(),bcid,x->mean->data(),0,0);
+    temp = "mean: " + number;
+    mean->SetTitle(temp.c_str());
+
+    TGraphErrors* width = new TGraphErrors(x->width->size(),bcid,x->width->data(),0,0);
+    temp = "width: " + number;
+    width->SetTitle(temp.c_str());
+
+    TGraphErrors* chi2 = new TGraphErrors(x->chi2->size(),bcid,x->chi2->data(),0,0);
+    //chi2->GetYaxis()->SetRangeUser(0,500);
+    temp = "chi2: " + number;
+    chi2->SetTitle(temp.c_str());
+
+
+
+    Stylize(peak);
+    Stylize(mean);
+    Stylize(width);
+    Stylize(chi2);
+
+    frame.AddPlot(peak);
+    frame.AddPlot(mean);
+    frame.AddPlot(width);
+    frame.AddPlot(chi2);
+
+
+
+    if(x->sGauss == false){
+      TGraphErrors* widthA = new TGraphErrors(x->peak->size(),bcid,x->widthA->data(),0,0);
+      temp = "width gaussian 1: " + number;
+      widthA->SetTitle(temp.c_str());
+
+      TGraphErrors* widthB = new TGraphErrors(x->peak->size(),bcid,x->widthB->data(),0,0);
+      temp = "width gaussian 2: " + number;
+      widthB->SetTitle(temp.c_str());
+
+      TGraphErrors* widthDifference = new TGraphErrors(x->peak->size(),bcid,x->widthDifference->data(),0,0);
+      temp = "width Differnce: " + number;
+      widthDifference->SetTitle(temp.c_str());
+
+
+      TGraphErrors* widthRatio = new TGraphErrors(x->peak->size(),bcid,x->widthRatio->data(),0,0);
+      temp = "widthRatio: gaussian1/gaussian2: " + number;
+      widthRatio->SetTitle(temp.c_str());
+
+      TGraphErrors* areaRatio = new TGraphErrors(x->peak->size(),bcid,x->areaRatio->data(),0,0);
+      temp = "areaRatio: gaussian1/gaussian2:" + number;
+      areaRatio->SetTitle(temp.c_str());
+
+      #if zoomed
+        widthRatio->GetYaxis()->SetRangeUser(0,1);
+        widthDifference->GetYaxis()->SetRangeUser(-0.02,0.02);
+        widthA->GetYaxis()->SetRangeUser(-0.01,0.02);
+        chi2->GetYaxis()->SetRangeUser(0,100);
+        areaRatio->GetYaxis()->SetRangeUser(0,2.3);
+      #endif
+
+      Stylize(widthA);
+      Stylize(widthB);
+      Stylize(widthDifference);
+      Stylize(widthRatio);
+      Stylize(areaRatio);
+
+      frame.AddPlot(widthA);
+      frame.AddPlot(widthB);
+      frame.AddPlot(widthDifference);
+      frame.AddPlot(widthRatio);
+      frame.AddPlot(areaRatio);
+      frame.AddPlot(areaRatio);
+
+
+    }
+
+
+    return frame;
+
+
+
+
+  }
+
+
+
   void PlotData(){
     cout<<"plotting Data"<<endl;
+    vector<Frame> frames;
 
-    Vector2D<Int_t> * point = new Vector2D<Int_t>(700,1000);
-    Frame frame(point, 2);
+    Vector2D<Int_t> * point = new Vector2D<Int_t>(450,300);
 
+    GaussianDesc xDesc;
+    GaussianDesc yDesc;
 
 
     int steps = x.BCID->size();
     int length = x.BCID->at(0).size();
 
-    for (size_t p = 0; p < 6; p++) {
+    for (size_t p = 0; p < length; p++) {
+      Frame frame(point, 2);
 
-      Float_t x1[steps],y1[steps],e1[steps];
-      Float_t x2[steps],y2[steps],e2[steps];
+      Double_t x1[steps],y1[steps],e1[steps],sep1[steps];
+      Double_t x2[steps],y2[steps],e2[steps],sep2[steps];
 
       for (size_t i = 0; i < steps; i++) {
         x1[i] = x.Seperation->at(i);
@@ -755,8 +922,48 @@ class Engine{
         e2[i] = y.Error->at(i).at(p);
       }
 
-      TGraphErrors* LumPlot = new TGraphErrors(steps,x1,y1,0,e1);
-      frame.AddPlot(LumPlot);
+      TGraphErrors* LumPlotX = new TGraphErrors(steps,x1,y1,0,e1);
+      string namex = "X LumData" + to_string(x.BCID->at(0).at(p));
+      LumPlotX->SetTitle(namex.c_str());
+      function->Fit(LumPlotX);
+      frame.AddPlot(LumPlotX);
+      xDesc.BCIDs = x.BCID;
+
+      Task(&xDesc,function,LumPlotX);
+
+
+
+
+      CalculateSeperation(sep1,x1,y1,steps,function->GetFunction());
+
+      TGraphErrors* LumPlotXSep = new TGraphErrors(steps,x1,sep1,0,0);
+      //frame.AddPlot(LumPlotXSep);
+
+
+
+
+
+
+
+      TGraphErrors* LumPlotY = new TGraphErrors(steps,x2,y2,0,e2);
+      string namey = "Y LumData" + to_string(x.BCID->at(0).at(p));
+      LumPlotY->SetTitle(namey.c_str());
+
+      function->Fit(LumPlotY);
+
+      frame.AddPlot(LumPlotY);
+
+      yDesc.BCIDs = y.BCID;
+      Task(&yDesc,function,LumPlotY);
+
+
+
+      CalculateSeperation(sep2,x2,y2,steps,function->GetFunction());
+
+      TGraphErrors* LumPlotYSep = new TGraphErrors(steps,x2,sep2,0,0);
+      frame.AddPlot(LumPlotYSep);
+
+      //frames.push_back(frame);
 
 
 
@@ -764,18 +971,59 @@ class Engine{
 
     }
 
-    frame.Draw();
+    frames.push_back(SortTaskData(&xDesc,0));
+    frames.push_back(SortTaskData(&yDesc,1));
+
+
+    for (size_t i = 0; i < frames.size(); i++) {
+      frames.at(i).Draw(writer);
+    }
 
 
   }
 
 
+  void CalculateSeperation(Double_t* sep,Double_t* x,Double_t* y,int size, TF1* function){
+
+
+    for (size_t i = 0; i < size; i++) {
+      sep[i] = -1*function->Eval(x[i]) + y[i];
+    }
+
+
+  }
+
+  void Stylize(TGraphErrors * plot){
+    plot->SetMarkerStyle(18);
+    plot->SetMarkerSize(0.2);
+    plot->SetMarkerColor(2);
+  }
 
 
 
 };
 
+class FrameComparison{
+  vector<Frame> frames;
+  TCanvasFileWriter * writer;
+  public:
 
+  FrameComparison(TCanvasFileWriter * writer){
+    this->writer = writer;
+  }
+
+  void AddFrame(Frame frame){
+    this->frames.push_back(frame);
+  }
+
+  void Draw(){
+    for (size_t i = 0; i < frames.size(); i++) {
+      frames.at(i).Draw(writer);
+    }
+  }
+
+
+};
 
 
 
