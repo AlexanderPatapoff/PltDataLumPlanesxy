@@ -40,9 +40,9 @@ void Init(string fileName,string outputName){
   BeamDataHandler *beamA = new BeamDataHandler(fileName.c_str(),"beamA",0);
   BeamDataHandler *beamB = new BeamDataHandler(fileName.c_str(),"beamB",1);
   BeamCollisionHandler output(beamA, beamB);
-  DoubleGaussFunction * dfunction = new DoubleGaussFunction("DG",0.2);
+  DoubleGaussFunction * dfunction = new DoubleGaussFunction("DG",1);
   SingleGaussFunction * sfunction = new SingleGaussFunction("SG",1);
-  string temp = outputName + "DoubleGuass";
+  string temp = outputName + "DG";
   AnalysisEngine doubleGauss(&output, dfunction,&doubleGaussF,temp);
   temp = fileName + "SingleGauss";
   //AnalysisEngine singleGauss(&output, sfunction,&singleGaussF,temp);
@@ -54,17 +54,15 @@ void Entry(){
   //TCanvasFileWriter * iowriter = new TCanvasFileWriter("comparison");
   //FrameComparison
 
-  //9 points
-  //Init("9pt1","9pt1PreceedErrors");
-  //Init("9pt2","9pt2PreceedErrors");
+  Init("scan1808010442","Fill_8011|15");
+  Init("scan1808011349","Fill_8011|9");
+  Init("scan1807082249","Fill_7082|15");
 
-  //13 point Scan
-  //Init("13pt1","13pt1PreceedErrors");
-  Init("13pt2","13pt2PreceedErrorsZOOM");
+  Init("scan1806261336","Fill_6261_NTRAIN|9");
 
-  //15 point Scan range
-  //Init("15pt1","15pt1PreceedErrorsZOOMAGAIN");
-
+  Init("scan1805182231","ERRORCHECK_9a");
+  Init("scan1805190017","ERRORCHECK_9b");
+  Init("scan1805182255","ERRORCHECK_13");
 
 
 

@@ -3,7 +3,7 @@
 
 #define Absolute false
 #define PreceedErrors true
-#define zoom false
+#define Rezoom true
 
 struct CollisionData{
   vector<vector<Int_t>>* BCID;
@@ -659,14 +659,14 @@ class DoubleGaussFunction: public Function{
 
     p2 = fit->GetParameter(2);
 
-  //  #if PreceedErrors
+
       p0e = fit->GetParError(0);
       p1e = fit->GetParError(1);
       p2e = fit->GetParError(2);
       function->SetParError(0,p0e);
       function->SetParError(1,p1e);
       function->SetParError(2,p2e);
-  //  #endif
+
 
 
     function->SetParameter(0,p0);
@@ -741,21 +741,10 @@ class DoubleGaussFunction: public Function{
 
   Double_t GetAreaRatio(Double_t x1, Double_t x2){
 
-#if Absolute
-    Double_t Area1 = abs(gaussA->Integral(x1,0));
-    Area1 += abs(gaussA->Integral(0,x2));
 
-
-
-    Double_t Area2 = abs(gaussB->Integral(x1,0));
-    Area2 += abs(gaussB->Integral(0,x2));
-    #else
     Double_t Area1 = gaussA->Integral(x1,x2);
 
     Double_t Area2 = gaussB->Integral(x1,x2);
-
-
-#endif
 
     return Area1/Area2;
 
@@ -825,10 +814,10 @@ class AnalysisEngine{
 
 
 
-    Stylize(peak);
-    Stylize(mean);
-    Stylize(width);
-    Stylize(chi2);
+    Stylize(peak,x->peak,false,0);
+    Stylize(mean,x->mean,false,0);
+    Stylize(width,x->width,true,2);
+    Stylize(chi2,x->chi2,true,2);
 
     frame.AddPlot(peak);
     frame.AddPlot(mean);
@@ -859,19 +848,13 @@ class AnalysisEngine{
       temp = "areaRatio: gaussian1/gaussian2:" + number;
       areaRatio->SetTitle(temp.c_str());
 
-      #if zoomed
-        widthRatio->GetYaxis()->SetRangeUser(0,1);
-        widthDifference->GetYaxis()->SetRangeUser(-0.02,0.02);
-        widthA->GetYaxis()->SetRangeUser(-0.01,0.02);
-        chi2->GetYaxis()->SetRangeUser(0,100);
-        areaRatio->GetYaxis()->SetRangeUser(0,2.3);
-      #endif
 
-      Stylize(widthA);
-      Stylize(widthB);
-      Stylize(widthDifference);
-      Stylize(widthRatio);
-      Stylize(areaRatio);
+
+      Stylize(widthA,x->widthA,true,1);
+      Stylize(widthB,x->widthB,true,1);
+      Stylize(widthDifference,x->widthDifference,true,1);
+      Stylize(widthRatio,x->widthRatio,true,1);
+      Stylize(areaRatio,x->areaRatio,true,2);
 
       frame.AddPlot(widthA);
       frame.AddPlot(widthB);
@@ -993,10 +976,50 @@ class AnalysisEngine{
 
   }
 
-  void Stylize(TGraphErrors * plot){
+  Double_t CalculateSTD(vector<Double_t>* array){
+    int size = array->size();
+    Double_t average = 0;
+    for (size_t i = 0; i < size; i++) {
+      average += array->at(i);
+    }
+
+    average = average/size;
+
+    Double_t STD = 0;
+
+    for (size_t i = 0; i < size; i++) {
+      STD += pow((array->at(i) - average),2);
+    }
+    STD = STD/(size-1);
+    STD = sqrt(STD);
+
+    return STD;
+
+  }
+
+  Double_t CalculateMean(vector<Double_t>* array){
+    int size = array->size();
+    Double_t average = 0;
+    for (size_t i = 0; i < size; i++) {
+      average += array->at(i);
+    }
+
+    average = average/size;
+
+    return average;
+  }
+
+  void Stylize(TGraphErrors * plot,vector<Double_t>* array,bool zoom,int stditer){
     plot->SetMarkerStyle(18);
     plot->SetMarkerSize(0.2);
     plot->SetMarkerColor(2);
+    if(zoom){
+
+      Double_t mean = CalculateMean(array);
+      Double_t STD = CalculateSTD(array);
+      plot->GetYaxis()->SetRangeUser(mean-STD*stditer,mean+STD*stditer);
+    }
+
   }
 
 
