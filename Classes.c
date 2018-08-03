@@ -6,6 +6,7 @@
 #define Rezoom true
 
 struct CollisionData{
+  int steps = 0;
   vector<vector<Int_t>>* BCID;
   vector<vector<Double_t>>* LumData;
   vector<vector<Double_t>>* Error;
@@ -24,6 +25,7 @@ struct BeamDataHandlerDesc{
 };
 struct GaussianDesc{
   bool sGauss;
+  int pointsSize = 0;
   vector<Double_t> *chi2 = new vector<Double_t>();
   vector<Double_t> *widthRatio = new vector<Double_t>();
   vector<Double_t> *widthA = new vector<Double_t>();
@@ -33,8 +35,17 @@ struct GaussianDesc{
   vector<Double_t> *areaRatio = new vector<Double_t>();
   vector<Double_t> *width = new vector<Double_t>();
   vector<Double_t> *peak = new vector<Double_t>();
+  vector<Double_t*> *points = new vector<Double_t*>();
+  vector<Double_t> *param3 = new vector<Double_t>();
+  vector<Double_t> *param4 = new vector<Double_t>();
   vector<vector<Int_t>> *BCIDs;
 };
+struct Task{
+  vector<Double_t> * taskdata;
+  TGraphErrors*(*taskFunction)( vector<Double_t>*);
+};
+
+
 class TCanvasFileWriter{
   private:
   string fileName;
@@ -526,6 +537,7 @@ class BeamCollisionHandler{
     int steps = collision.BCID->size()/2;
     int nCollisions = collision.BCID->at(0).size();
 
+    x.steps = steps;
     x.LumData = new vector<vector<Double_t>>(steps, vector<Double_t>(nCollisions));
     x.BCID = new vector<vector<Int_t>>(steps, vector<Int_t>(nCollisions));
     x.Error = new vector<vector<Double_t>>(steps,vector<Double_t>(nCollisions));
@@ -548,6 +560,7 @@ class BeamCollisionHandler{
     int steps = collision.BCID->size()/2;
     int nCollisions = collision.BCID->at(0).size();
 
+    x.steps = steps;
     x.LumData = new vector<vector<Double_t>>(steps, vector<Double_t>(nCollisions));
     x.BCID = new vector<vector<Int_t>>(steps, vector<Int_t>(nCollisions));
     x.Error = new vector<vector<Double_t>>(steps,vector<Double_t>(nCollisions));
@@ -631,10 +644,10 @@ class DoubleGaussFunction: public Function{
   Double_t widthA,widthB;
 
   TF1* gaussA, *gaussB;
-
+  Double_t param[5];
 
   void InitializeFunction(){
-    function = new TF1(this->name.c_str(), "[0]*( (1-[3])*exp(-0.5*((x-[1])/([2]/(1-[3]+[3]*[4])))**2) + [3]*exp(-0.5*((x-[1])/([2]*[4]/(1-[3]+[3]*[4])))**2))", -1*this->range, this->range);
+    function = new TF1(this->name.c_str(), "[0]*( (1-[3])*exp(-0.5*((x-[1])/([2]/(1-[3]+[3]*[4])))**2) + [3]*exp(-0.5*((x-[1])/([2]*[4]/(1-[3]+[3]*[4])))**2))", -0.01, 0.01);
 
   }
 
@@ -645,9 +658,9 @@ class DoubleGaussFunction: public Function{
   }
 
   void Fit(TGraphErrors* plot){
-    TF1 * fit = new TF1("h1","gaus",-1,1);
+    TF1 * fit = new TF1("h1","gaus",-1*this->range, this->range);
 
-    plot->Fit("h1","MESQ");
+    plot->Fit("h1","MESQ","R",-1*this->range, this->range);
 
     float p0,p1,p2,p3,p4,cdof2;
     float p0e,p1e,p2e;
@@ -660,27 +673,24 @@ class DoubleGaussFunction: public Function{
     p2 = fit->GetParameter(2);
 
 
-      p0e = fit->GetParError(0);
-      p1e = fit->GetParError(1);
-      p2e = fit->GetParError(2);
-      function->SetParError(0,p0e);
-      function->SetParError(1,p1e);
-      function->SetParError(2,p2e);
+    p0e = fit->GetParError(0);
+    p1e = fit->GetParError(1);
+    p2e = fit->GetParError(2);
+    function->SetParError(0,p0e);
+    function->SetParError(1,p1e);
+    function->SetParError(2,p2e);
 
 
 
     function->SetParameter(0,p0);
-    //function->SetParError(0,p0e);
     function->SetParameter(1,p1);
-    //function->SetParError(1,p1e);
     function->SetParameter(2,p2);
-    //function->SetParError(2,p2e);
     function->SetParameter(3,0.5);
     function->SetParameter(4,5.0);
     function->SetParLimits(4,0,1000);
 
 
-    plot->Fit(this->name.c_str(),"MESQ");
+    plot->Fit(function,"MESQ","R",-1*this->range, this->range);
 
     p0 = function->GetParameter(0);
     p1 = function->GetParameter(1);
@@ -692,9 +702,14 @@ class DoubleGaussFunction: public Function{
     widthA = (p2/(1-p3+p3*p4));
     widthB = (p2*p4/(1-p3+p3*p4));
 
+    param[0] = p0;
+    param[1] = p1;
+    param[2] = p2;
+    param[3] = p3;
+    param[4] = p4;
 
 
-    gaussA = new TF1("g1","[0]*( (1-[3])*exp(-0.5*((x-[1])/([2]/(1-[3]+[3]*[4])))**2))",-1,1);
+    gaussA = new TF1("g1","[0]*( (1-[3])*exp(-0.5*((x-[1])/([2]/(1-[3]+[3]*[4])))**2))",0.01,0.01);
     gaussA->SetParameter(0,p0);
     gaussA->SetParameter(1,p1);
     gaussA->SetParameter(2,p2);
@@ -739,6 +754,10 @@ class DoubleGaussFunction: public Function{
     return (widthA-widthB);
   }
 
+  Double_t GetParam(int x){
+    return param[x];
+  }
+
   Double_t GetAreaRatio(Double_t x1, Double_t x2){
 
 
@@ -752,6 +771,8 @@ class DoubleGaussFunction: public Function{
 };
 
 class AnalysisEngine{
+
+
   BeamCollisionHandler * collision;
   Function * function;
   CollisionData x,y;
@@ -848,6 +869,15 @@ class AnalysisEngine{
       temp = "areaRatio: gaussian1/gaussian2:" + number;
       areaRatio->SetTitle(temp.c_str());
 
+      TGraphErrors* Param3 = new TGraphErrors(x->chi2->size(),bcid,x->param3->data(),0,0);
+      //chi2->GetYaxis()->SetRangeUser(0,500);
+      temp = "Param3: " + number;
+      Param3->SetTitle(temp.c_str());
+
+      TGraphErrors* Param4 = new TGraphErrors(x->chi2->size(),bcid,x->param4->data(),0,0);
+      //chi2->GetYaxis()->SetRangeUser(0,500);
+      temp = "Param4: " + number;
+      Param4->SetTitle(temp.c_str());
 
 
       Stylize(widthA,x->widthA,true,1);
@@ -855,13 +885,18 @@ class AnalysisEngine{
       Stylize(widthDifference,x->widthDifference,true,1);
       Stylize(widthRatio,x->widthRatio,true,1);
       Stylize(areaRatio,x->areaRatio,true,2);
+      Stylize(param3,x->param3,true,3);
+      Stylize(param4,x->param4,true,3);
+
 
       frame.AddPlot(widthA);
       frame.AddPlot(widthB);
       frame.AddPlot(widthDifference);
       frame.AddPlot(widthRatio);
-      frame.AddPlot(areaRatio);
-      frame.AddPlot(areaRatio);
+      //frame.AddPlot(areaRatio);
+      //frame.AddPlot(areaRatio);
+      frame.AddPlot(param3);
+      frame.AddPlot(param4);
 
 
     }
@@ -876,6 +911,24 @@ class AnalysisEngine{
 
 
 
+
+  Frame RunTasks(int axis){
+    Vector2D<Int_t> * point;
+    string number;
+    if(x->sGauss){
+      point = new Vector2D<Int_t>(450,300);
+      }else{
+      point = new Vector2D<Int_t>(600,600);
+    }
+    if(axis ==0){number = "X";}else{number = "Y";}
+    Frame frame(point,2);
+    string temp;
+
+
+
+
+  }
+
   void PlotData(){
     cout<<"plotting Data"<<endl;
     vector<Frame> frames;
@@ -884,7 +937,7 @@ class AnalysisEngine{
 
     GaussianDesc xDesc;
     GaussianDesc yDesc;
-
+    xDesc.pointsSize =
 
     int steps = x.BCID->size();
     int length = x.BCID->at(0).size();
@@ -920,7 +973,7 @@ class AnalysisEngine{
       CalculateSeperation(sep1,x1,y1,steps,function->GetFunction());
 
       TGraphErrors* LumPlotXSep = new TGraphErrors(steps,x1,sep1,0,0);
-      //frame.AddPlot(LumPlotXSep);
+      frame.AddPlot(LumPlotXSep);
 
 
 
@@ -946,7 +999,7 @@ class AnalysisEngine{
       TGraphErrors* LumPlotYSep = new TGraphErrors(steps,x2,sep2,0,0);
       frame.AddPlot(LumPlotYSep);
 
-      //frames.push_back(frame);
+      frames.push_back(frame);
 
 
 
