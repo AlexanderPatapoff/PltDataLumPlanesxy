@@ -49,12 +49,16 @@ struct Task{
 class TCanvasFileWriter{
   private:
   string fileName;
-
+  string desc;
 
   public:
 
   TCanvasFileWriter(string fileName_){
     fileName = fileName_ + ".pdf";
+  }
+  TCanvasFileWriter(string fileName_,string desc_){
+    fileName = fileName_ + ".pdf";
+    desc = desc_;
   }
 
   void OpenFile(){
@@ -63,7 +67,13 @@ class TCanvasFileWriter{
     TPaveLabel *title = new TPaveLabel(0.1,0.94,0.9,0.98,fileName.c_str());
     title->SetFillColor(16);
     title->SetTextFont(52);
+
+    TPaveLabel *descc = new TPaveLabel(0.1,0.5,0.9,0.6,desc.c_str());
+    descc->SetFillColor(16);
+    descc->SetTextFont(52);
+
     title->Draw();
+    descc->Draw();
 
     open->Print(temp.c_str());
   }
@@ -214,6 +224,7 @@ class Plot{
 class Frame{
   Vector2D<Int_t> *size;
   int columns;
+  Frame *extension = nullptr;
   vector<TGraphErrors*> plots;
 
   public:
@@ -235,19 +246,31 @@ class Frame{
 
     TCanvas *canvas = new TCanvas("Frame","Guassians",size->GetX(),size->GetY());
     int y = plots.size()/columns;
+    if ( y > 5){
+      y = y-5;
+      y = columns * y;
+      extension = new Frame(size, columns);
+      for (size_t i = plots.size() - y-1; i < plots.size(); i++) {
+        extension->AddPlot(plots.at(i));
+      }
+      y=5;
+
+    }
     canvas->Divide(columns, y,0.01,0.01);
     int temp = 0;
     for (size_t i = 0; i < y; i++) {
       for (size_t p = 0; p < columns; p++) {
         canvas->cd(temp+1);
-        //Stylize();
+
         plots.at(temp)->Draw("AP");
         temp++;
       }
     }
 
     writer->Write(canvas);
-
+    if(extension != nullptr){
+      extension->Draw(writer);
+    }
 
     delete canvas;
   /*
@@ -280,10 +303,78 @@ class Frame{
 
   }
 
+  void Draw(TCanvasFileWriter* writer,string fileName){
+
+
+    bool finished = false;
+
+
+
+    TCanvas *canvas = new TCanvas("Frame","Guassians",size->GetX(),size->GetY());
+
+    TPaveLabel *title = new TPaveLabel(0.1,0.98,0.9,0.99,fileName.c_str());
+    int y = plots.size()/columns;
+    title->Draw();
+    if ( y > 5){
+      y = y-5;
+      y = columns * y;
+      extension = new Frame(size, columns);
+      for (size_t i = plots.size() - y-1; i < plots.size(); i++) {
+        extension->AddPlot(plots.at(i));
+      }
+      y=5;
+
+    }
+    canvas->Divide(columns, y,0.01,0.02);
+    int temp = 0;
+    for (size_t i = 0; i < y; i++) {
+      for (size_t p = 0; p < columns; p++) {
+        canvas->cd(temp+1);
+
+        plots.at(temp)->Draw("AP");
+        temp++;
+      }
+    }
+
+    writer->Write(canvas);
+    if(extension != nullptr){
+      extension->Draw(writer);
+    }
+
+
+    delete canvas;
+
+
+
+  }
+
 
 
 };
+class FrameComparision{
+  vector<Frame> frames;
+  TCanvasFileWriter * writer;
+  vector<string> titles;
+  public:
 
+  FrameComparision(TCanvasFileWriter * writer){
+    this->writer = writer;
+    writer->OpenFile();
+  }
+
+  void Add(Frame frame,string title){
+    this->frames.push_back(frame);
+    this->titles.push_back(title);
+  }
+
+  void Draw(){
+    for (size_t i = 0; i < frames.size(); i++) {
+      frames.at(i).Draw(writer,titles.at(i));
+    }
+  }
+
+
+};
 class BeamDataHandler{
 
   BeamDataHandlerDesc dataHandlerDesc;
@@ -772,10 +863,12 @@ class DoubleGaussFunction: public Function{
 
 class AnalysisEngine{
 
-
+  protected:
   BeamCollisionHandler * collision;
+  string filename;
   Function * function;
   CollisionData x,y;
+  FrameComparision* ExternalIO;
   TCanvasFileWriter* writer;
   void (*Task)(GaussianDesc*,Function*,TGraphErrors*);
 
@@ -785,6 +878,20 @@ class AnalysisEngine{
     this->collision = collision;
     this->function = function;
     this->Task = TT;
+    this->filename = fileName;
+    writer = new TCanvasFileWriter(fileName);
+    writer->OpenFile();
+    OrganizeData();
+    PlotData();
+    writer->CloseFile();
+  }
+
+  AnalysisEngine(BeamCollisionHandler* collision,Function* function,void (*TT)(GaussianDesc*,Function*,TGraphErrors*),string fileName,FrameComparision * frame){
+    this->collision = collision;
+    this->function = function;
+    this->Task = TT;
+    this->filename = fileName;
+    this->ExternalIO = frame;
     writer = new TCanvasFileWriter(fileName);
     writer->OpenFile();
     OrganizeData();
@@ -801,8 +908,8 @@ class AnalysisEngine{
     y = collision->GetCollisionY();
   }
 
-  Frame SortTaskData(GaussianDesc* x,int axis){
-    Vector2D<Int_t> * point;
+  Frame virtual SortTaskData(GaussianDesc* x,int axis){
+    Vector2D<Int_t> * point = new Vector2D<Int_t>(600,600);
     string number;
     if(x->sGauss){
       point = new Vector2D<Int_t>(450,300);
@@ -835,13 +942,13 @@ class AnalysisEngine{
 
 
 
-    Stylize(peak,x->peak,false,0);
-    Stylize(mean,x->mean,false,0);
+    Stylize(peak,x->peak,false,2);
+    Stylize(mean,x->mean,false,2);
     Stylize(width,x->width,true,2);
     Stylize(chi2,x->chi2,true,2);
 
-    frame.AddPlot(peak);
-    frame.AddPlot(mean);
+    //frame.AddPlot(peak);
+    //frame.AddPlot(mean);
     frame.AddPlot(width);
     frame.AddPlot(chi2);
 
@@ -869,34 +976,34 @@ class AnalysisEngine{
       temp = "areaRatio: gaussian1/gaussian2:" + number;
       areaRatio->SetTitle(temp.c_str());
 
-      TGraphErrors* Param3 = new TGraphErrors(x->chi2->size(),bcid,x->param3->data(),0,0);
+      TGraphErrors* param3 = new TGraphErrors(x->chi2->size(),bcid,x->param3->data(),0,0);
       //chi2->GetYaxis()->SetRangeUser(0,500);
-      temp = "Param3: " + number;
-      Param3->SetTitle(temp.c_str());
+      temp = "Relative Amplitude Second Gauss: " + number;
+      param3->SetTitle(temp.c_str());
 
-      TGraphErrors* Param4 = new TGraphErrors(x->chi2->size(),bcid,x->param4->data(),0,0);
+      TGraphErrors* param4 = new TGraphErrors(x->chi2->size(),bcid,x->param4->data(),0,0);
       //chi2->GetYaxis()->SetRangeUser(0,500);
-      temp = "Param4: " + number;
-      Param4->SetTitle(temp.c_str());
+      temp = "Relative Width Second Gauss: " + number;
+      param4->SetTitle(temp.c_str());
 
 
-      Stylize(widthA,x->widthA,true,1);
-      Stylize(widthB,x->widthB,true,1);
-      Stylize(widthDifference,x->widthDifference,true,1);
-      Stylize(widthRatio,x->widthRatio,true,1);
+      Stylize(widthA,x->widthA,true,2);
+      Stylize(widthB,x->widthB,true,2);
+      Stylize(widthDifference,x->widthDifference,true,2);
+      Stylize(widthRatio,x->widthRatio,true,2);
       Stylize(areaRatio,x->areaRatio,true,2);
-      Stylize(param3,x->param3,true,3);
-      Stylize(param4,x->param4,true,3);
+      Stylize(param3,x->param3,true,2);
+      Stylize(param4,x->param4,true,1);
 
 
       frame.AddPlot(widthA);
       frame.AddPlot(widthB);
-      frame.AddPlot(widthDifference);
+      //frame.AddPlot(widthDifference);
       frame.AddPlot(widthRatio);
+      frame.AddPlot(areaRatio);
       //frame.AddPlot(areaRatio);
-      //frame.AddPlot(areaRatio);
-      frame.AddPlot(param3);
-      frame.AddPlot(param4);
+      //frame.AddPlot(param3);
+      //frame.AddPlot(param4);
 
 
     }
@@ -912,24 +1019,9 @@ class AnalysisEngine{
 
 
 
-  Frame RunTasks(int axis){
-    Vector2D<Int_t> * point;
-    string number;
-    if(x->sGauss){
-      point = new Vector2D<Int_t>(450,300);
-      }else{
-      point = new Vector2D<Int_t>(600,600);
-    }
-    if(axis ==0){number = "X";}else{number = "Y";}
-    Frame frame(point,2);
-    string temp;
 
 
-
-
-  }
-
-  void PlotData(){
+  void virtual PlotData(){
     cout<<"plotting Data"<<endl;
     vector<Frame> frames;
 
@@ -937,8 +1029,8 @@ class AnalysisEngine{
 
     GaussianDesc xDesc;
     GaussianDesc yDesc;
-    xDesc.pointsSize =
-
+    xDesc.pointsSize = x.BCID->size();
+    yDesc.pointsSize = x.BCID->size();
     int steps = x.BCID->size();
     int length = x.BCID->at(0).size();
 
@@ -1002,18 +1094,20 @@ class AnalysisEngine{
       frames.push_back(frame);
 
 
-
-
-
     }
 
     frames.push_back(SortTaskData(&xDesc,0));
     frames.push_back(SortTaskData(&yDesc,1));
 
+    ExternalIO->Add(SortTaskData(&xDesc,0),filename);
+    ExternalIO->Add(SortTaskData(&yDesc,1),filename);
+    cout<<"fin"<<endl;
 
     for (size_t i = 0; i < frames.size(); i++) {
       frames.at(i).Draw(writer);
     }
+
+
 
 
   }
@@ -1079,27 +1173,8 @@ class AnalysisEngine{
 
 };
 
-class FrameComparison{
-  vector<Frame> frames;
-  TCanvasFileWriter * writer;
-  public:
-
-  FrameComparison(TCanvasFileWriter * writer){
-    this->writer = writer;
-  }
-
-  void AddFrame(Frame frame){
-    this->frames.push_back(frame);
-  }
-
-  void Draw(){
-    for (size_t i = 0; i < frames.size(); i++) {
-      frames.at(i).Draw(writer);
-    }
-  }
 
 
-};
 
 
 
