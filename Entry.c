@@ -32,7 +32,7 @@ void doubleGaussF(GaussianDesc* desc, Function *functiond,TGraphErrors* plot){
   desc->points->push_back(plot->GetY());
   desc->param3->push_back(function->GetParam(3));
   desc->param4->push_back(function->GetParam(4));
-
+  if(function->GetWidthB() >0.015) desc->trackBCID->push_back(desc->areaRatio->at(desc->areaRatio->size()-1));
   desc->chi2->push_back(function->GetFunction()->GetChisquare());
 
 }
@@ -61,11 +61,11 @@ void Entry(){
   TCanvasFileWriter * iowriter = new TCanvasFileWriter("comparisonPartFits","Fill_8011|15,Fill_8011|9,Fill_7082|15");
   FrameComparision * frame = new FrameComparision(iowriter);
 
-  Init("scan1808010442","Fill_8011|15_C9",0.04,frame);
-  Init("scan1808010442","Fill_8011|15",1,frame);
+  Init("scan1808010442","Fill_8011|15_C9_T",0.04,frame);
+  //Init("scan1808010442","Fill_8011|15",1,frame);
   //Init("scan1808011349","Fill_8011|9",1,frame);
-  Init("scan1807082249","Fill_7082|15_C9",0.04,frame);
-  Init("scan1807082249","Fill_7082|15",1,frame);
+//  Init("scan1807082249","Fill_7082|15_C9",0.04,frame);
+//  Init("scan1807082249","Fill_7082|15",1,frame);
 
 
   //Init("scan1806261336","Fill_6261_NTRAIN|9",1,frame);
@@ -74,7 +74,7 @@ void Entry(){
   //Init("scan1805190017","ERRORCHECK_9b",1,frame);
   //Init("scan1805182255","ERRORCHECK_13",1,frame);
 
-  frame->Draw();
+//  frame->Draw();
   iowriter->CloseFile();
 
 

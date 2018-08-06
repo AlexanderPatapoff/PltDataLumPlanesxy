@@ -38,6 +38,7 @@ struct GaussianDesc{
   vector<Double_t*> *points = new vector<Double_t*>();
   vector<Double_t> *param3 = new vector<Double_t>();
   vector<Double_t> *param4 = new vector<Double_t>();
+  vector<Double_t> * trackBCID = new vector<Double_t>();
   vector<vector<Int_t>> *BCIDs;
 };
 struct Task{
@@ -986,6 +987,16 @@ class AnalysisEngine{
       temp = "Relative Width Second Gauss: " + number;
       param4->SetTitle(temp.c_str());
 
+      Double_t axisx[x->trackBCID->size()];
+      for (size_t i = 0; i < x->trackBCID->size(); i++) {
+        axisx[i] = i;
+      }
+
+      TGraphErrors* TrackAreaRatio = new TGraphErrors(x->trackBCID->size(),axisx,x->trackBCID->data(),0,0);
+      //chi2->GetYaxis()->SetRangeUser(0,500);
+      temp = "Relative Width Second Gauss: " + number;
+      param4->SetTitle(temp.c_str());
+
 
       Stylize(widthA,x->widthA,true,2);
       Stylize(widthB,x->widthB,true,2);
@@ -994,13 +1005,15 @@ class AnalysisEngine{
       Stylize(areaRatio,x->areaRatio,true,2);
       Stylize(param3,x->param3,true,2);
       Stylize(param4,x->param4,true,1);
+      Stylize(TrackAreaRatio,x->trackBCID,true,1);
 
 
       frame.AddPlot(widthA);
       frame.AddPlot(widthB);
-      //frame.AddPlot(widthDifference);
+      frame.AddPlot(widthDifference);
       frame.AddPlot(widthRatio);
       frame.AddPlot(areaRatio);
+      frame.AddPlot(TrackAreaRatio);
       //frame.AddPlot(areaRatio);
       //frame.AddPlot(param3);
       //frame.AddPlot(param4);
