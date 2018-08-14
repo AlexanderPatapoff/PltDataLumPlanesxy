@@ -26,7 +26,7 @@ void doubleGaussF(GaussianDesc* desc, Function *functiond,TGraphErrors* plot){
   desc->widthA->push_back(function->GetWidthA());
   desc->widthB->push_back(function->GetWidthB());
   desc->widthRatio->push_back(function->GetWidthRation());
-  Float_t temp = function->GetAreaRatio(-1,1);
+  Float_t temp = function->GetAreaRatio();
   desc->areaRatio->push_back(temp);
   desc->widthDifference->push_back(function->GetWidthDifference());
   desc->points->push_back(plot->GetY());
@@ -34,6 +34,15 @@ void doubleGaussF(GaussianDesc* desc, Function *functiond,TGraphErrors* plot){
   desc->param4->push_back(function->GetParam(4));
   if(function->GetWidthB() >0.015) desc->trackBCID->push_back(desc->areaRatio->at(desc->areaRatio->size()-1));
   desc->chi2->push_back(function->GetFunction()->GetChisquare());
+  Double_t x,y,y1;
+  plot->GetPoint(3,x,y1);
+  plot->GetPoint(2,x,y);
+
+
+  desc->fantomFitA->push_back(y/y1);
+  plot->GetPoint(12,x,y);
+  plot->GetPoint(11,x,y1);
+  desc->fantomFitB->push_back(y/y1);
 
 }
 
@@ -61,11 +70,11 @@ void Entry(){
   TCanvasFileWriter * iowriter = new TCanvasFileWriter("comparisonPartFits","Fill_8011|15,Fill_8011|9,Fill_7082|15");
   FrameComparision * frame = new FrameComparision(iowriter);
 
-  Init("scan1808010442","Fill_8011|15_C9_T",0.04,frame);
-  //Init("scan1808010442","Fill_8011|15",1,frame);
+  //Init("scan1808010442","Fill_8011|15_C9_T",0.04,frame);
+  Init("scan1808010442","Fill_8011|15_THE",1,frame);
   //Init("scan1808011349","Fill_8011|9",1,frame);
-//  Init("scan1807082249","Fill_7082|15_C9",0.04,frame);
-//  Init("scan1807082249","Fill_7082|15",1,frame);
+  //Init("scan1807082249","Fill_7082|15_C9",0.035,frame);
+  //Init("scan1807082249","Fill_7082|15",1,frame);
 
 
   //Init("scan1806261336","Fill_6261_NTRAIN|9",1,frame);

@@ -39,6 +39,8 @@ struct GaussianDesc{
   vector<Double_t> *param3 = new vector<Double_t>();
   vector<Double_t> *param4 = new vector<Double_t>();
   vector<Double_t> * trackBCID = new vector<Double_t>();
+  vector<Double_t> * fantomFitA = new vector<Double_t>();
+  vector<Double_t> * fantomFitB = new vector<Double_t>();
   vector<vector<Int_t>> *BCIDs;
 };
 struct Task{
@@ -46,6 +48,9 @@ struct Task{
   TGraphErrors*(*taskFunction)( vector<Double_t>*);
 };
 
+class FileIO{
+
+};
 
 class TCanvasFileWriter{
   private:
@@ -860,6 +865,17 @@ class DoubleGaussFunction: public Function{
     return Area1/Area2;
 
   }
+
+  Double_t GetAreaRatio(){
+
+
+    Double_t Area1 = gaussA->Integral(range,-range);
+
+    Double_t Area2 = gaussB->Integral(range,-range);
+
+    return Area1/Area2;
+
+  }
 };
 
 class AnalysisEngine{
@@ -943,13 +959,13 @@ class AnalysisEngine{
 
 
 
-    Stylize(peak,x->peak,false,2);
+    Stylize(peak,x->peak,true,2);
     Stylize(mean,x->mean,false,2);
     Stylize(width,x->width,true,2);
     Stylize(chi2,x->chi2,true,2);
 
-    //frame.AddPlot(peak);
-    //frame.AddPlot(mean);
+    frame.AddPlot(peak);
+    frame.AddPlot(mean);
     frame.AddPlot(width);
     frame.AddPlot(chi2);
 
@@ -997,6 +1013,15 @@ class AnalysisEngine{
       temp = "Relative Width Second Gauss: " + number;
       param4->SetTitle(temp.c_str());
 
+      TGraphErrors* fantomFitA = new TGraphErrors(x->fantomFitA->size(),bcid,x->fantomFitA->data(),0,0);
+      temp = "fantomFitA:" + number;
+      fantomFitA->SetTitle(temp.c_str());
+
+      TGraphErrors* fantomFitB = new TGraphErrors(x->fantomFitB->size(),bcid,x->fantomFitB->data(),0,0);
+      temp = "fantomFitB:" + number;
+      fantomFitB->SetTitle(temp.c_str());
+      //fantomFitA->GetYaxis()->SetRangeUser(0,1);
+      //fantomFitB->GetYaxis()->SetRangeUser(0,1);
 
       Stylize(widthA,x->widthA,true,2);
       Stylize(widthB,x->widthB,true,2);
@@ -1006,14 +1031,18 @@ class AnalysisEngine{
       Stylize(param3,x->param3,true,2);
       Stylize(param4,x->param4,true,1);
       Stylize(TrackAreaRatio,x->trackBCID,true,1);
+      Stylize(fantomFitA,x->fantomFitA,false,4);
+      Stylize(fantomFitB,x->fantomFitB,false,4);
 
 
       frame.AddPlot(widthA);
       frame.AddPlot(widthB);
       frame.AddPlot(widthDifference);
       frame.AddPlot(widthRatio);
-      frame.AddPlot(areaRatio);
-      frame.AddPlot(TrackAreaRatio);
+      //frame.AddPlot(areaRatio);
+      //frame.AddPlot(TrackAreaRatio);
+      frame.AddPlot(fantomFitA);
+      frame.AddPlot(fantomFitB);
       //frame.AddPlot(areaRatio);
       //frame.AddPlot(param3);
       //frame.AddPlot(param4);
@@ -1186,7 +1215,9 @@ class AnalysisEngine{
 
 };
 
+class CustomEngine{
 
+};
 
 
 
