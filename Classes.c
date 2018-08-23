@@ -1,9 +1,8 @@
 #include <cmath>
 
 
-#define Absolute false
-#define PreceedErrors true
-#define Rezoom true
+
+#define nFILTER
 
 struct CollisionData{
   int steps = 0;
@@ -41,7 +40,8 @@ struct GaussianDesc{
   vector<Double_t> * trackBCID = new vector<Double_t>();
   vector<Double_t> * fantomFitA = new vector<Double_t>();
   vector<Double_t> * fantomFitB = new vector<Double_t>();
-  vector<vector<Int_t>> *BCIDs;
+  vector<Double_t> * capSigma = new vector<Double_t>();
+  vector<Int_t> *BCIDs = new vector<Int_t>();
 };
 struct Task{
   vector<Double_t> * taskdata;
@@ -199,6 +199,11 @@ class Function{
   Double_t GetMean(){
 
     return function->GetHistogram()->GetMean(1);
+  }
+  Double_t GetcapSigma(){
+    Double_t xlow = GetMean() - GetWidth()*range;
+    Double_t xhigh = GetMean() + GetWidth()*range;
+    return function->Integral(xlow,xhigh);
   }
   Double_t Integrate(Double_t x1, Double_t x2){
     return -1;
@@ -739,6 +744,7 @@ class SingleGaussFunction: public Function{
 
 class DoubleGaussFunction: public Function{
   Double_t widthA,widthB;
+  Double_t meanA,meanB;
 
   TF1* gaussA, *gaussB;
   Double_t param[5];
@@ -759,7 +765,7 @@ class DoubleGaussFunction: public Function{
 
     plot->Fit("h1","MESQ","R",-1*this->range, this->range);
 
-    float p0,p1,p2,p3,p4,cdof2;
+    float p0,p1,p2,p3,p4,p5,cdof2;
     float p0e,p1e,p2e;
 
 
@@ -782,28 +788,66 @@ class DoubleGaussFunction: public Function{
     function->SetParameter(0,p0);
     function->SetParameter(1,p1);
     function->SetParameter(2,p2);
-    function->SetParameter(3,0.5);
-    function->SetParameter(4,5.0);
+    function->SetParLimits(2,0,1000);
+    function->SetParameter(3,0.1);
+    function->SetParameter(4,5);
     function->SetParLimits(4,0,1000);
 
 
     plot->Fit(function,"MESQ","R",-1*this->range, this->range);
+
+
+
+
+
+
+    TF1* function2 = new TF1(this->name.c_str(),"[0]*( (1-[3])*exp(-0.5*((x-[1])/([2]/(1-[3]+[3]*[4])))**2) + [3]*exp(-0.5*((x-[1]-[5])/([2]*[4]/(1-[3]+[3]*[4])))**2))",-1*range,range);
+    function2->SetParameter(0,function->GetParameter(0));
+    function2->SetParameter(1,function->GetParameter(1));
+    function2->SetParameter(2,function->GetParameter(2));
+    function2->SetParameter(3,function->GetParameter(3));
+    function2->SetParameter(4,function->GetParameter(4));
+    function2->SetParameter(5,0);
+
+    function2->SetParError (0,function->GetParError(0));
+
+    function2->SetParError (1,function->GetParError(1));
+
+    function2->SetParError (2,function->GetParError(2));
+
+    function2->SetParError (3,function->GetParError(3));
+
+    function2->SetParError (4,function->GetParError(4));
+
+    function2->SetParError(5, function->GetParError(0));
+
+
+
+    function2->SetParLimits(2,0,1000);
+    function2->SetParLimits(4,0,50);
+
+    plot->Fit(function2,"MESQ","R",-1*range, range);
+
+    function = function2;
+
+
+
+
 
     p0 = function->GetParameter(0);
     p1 = function->GetParameter(1);
     p2 = function->GetParameter(2);
     p3 = function->GetParameter(3);
     p4 = function->GetParameter(4);
+    p5 = function->GetParameter(5);
     //cdof2 = (doubleGuass->chi2()/max(f))
     //
+
+
+
+
     widthA = (p2/(1-p3+p3*p4));
     widthB = (p2*p4/(1-p3+p3*p4));
-
-    param[0] = p0;
-    param[1] = p1;
-    param[2] = p2;
-    param[3] = p3;
-    param[4] = p4;
 
 
     gaussA = new TF1("g1","[0]*( (1-[3])*exp(-0.5*((x-[1])/([2]/(1-[3]+[3]*[4])))**2))",0.01,0.01);
@@ -813,27 +857,22 @@ class DoubleGaussFunction: public Function{
     gaussA->SetParameter(3,p3);
     gaussA->SetParameter(4,p4);
 
-    gaussB = new TF1("g2","[0]*([3]*exp(-0.5*((x-[1])/([2]*[4]/(1-[3]+[3]*[4])))**2))",-1,1);
+    gaussB = new TF1("g2","[0]*([3]*exp(-0.5*((x-[1]-[5])/([2]*[4]/(1-[3]+[3]*[4])))**2))",-1,1);
     gaussB->SetParameter(0,p0);
     gaussB->SetParameter(1,p1);
     gaussB->SetParameter(2,p2);
     gaussB->SetParameter(3,p3);
     gaussB->SetParameter(4,p4);
+    gaussB->SetParameter(5,p5);
+
+
+    meanA = gaussA->GetHistogram()->GetMean(1);
+    meanB = gaussB->GetHistogram()->GetMean(1);
 
 
   }
 
-  vector<Double_t> GetAllData(){
-    vector<Double_t> data;
-    data.push_back(GetMean());
-    data.push_back(GetWidth());
-    data.push_back(GetWidthA());
-    data.push_back(GetWidthB());
-    data.push_back(GetWidthDifference());
-    data.push_back(GetAreaRatio(-1,1));
 
-    return data;
-  }
 
   Double_t GetWidthA(){
     return widthA;
@@ -841,6 +880,13 @@ class DoubleGaussFunction: public Function{
 
   Double_t GetWidthB(){
     return widthB;
+  }
+  Double_t GetMeanA(){
+    return meanA;
+  }
+
+  Double_t GetMeanB(){
+    return meanB;
   }
 
   Double_t GetWidthRation(){
@@ -887,11 +933,11 @@ class AnalysisEngine{
   CollisionData x,y;
   FrameComparision* ExternalIO;
   TCanvasFileWriter* writer;
-  void (*Task)(GaussianDesc*,Function*,TGraphErrors*);
+  void (*Task)(GaussianDesc*,Function*,TGraphErrors*,Int_t);
 
   public:
 
-  AnalysisEngine(BeamCollisionHandler* collision,Function* function,void (*TT)(GaussianDesc*,Function*,TGraphErrors*),string fileName){
+  AnalysisEngine(BeamCollisionHandler* collision,Function* function,void (*TT)(GaussianDesc*,Function*,TGraphErrors*,Int_t),string fileName){
     this->collision = collision;
     this->function = function;
     this->Task = TT;
@@ -903,7 +949,7 @@ class AnalysisEngine{
     writer->CloseFile();
   }
 
-  AnalysisEngine(BeamCollisionHandler* collision,Function* function,void (*TT)(GaussianDesc*,Function*,TGraphErrors*),string fileName,FrameComparision * frame){
+  AnalysisEngine(BeamCollisionHandler* collision,Function* function,void (*TT)(GaussianDesc*,Function*,TGraphErrors*,Int_t),string fileName,FrameComparision * frame){
     this->collision = collision;
     this->function = function;
     this->Task = TT;
@@ -938,7 +984,7 @@ class AnalysisEngine{
     string temp;
 
     Double_t bcid[x->peak->size()];
-    copy(x->BCIDs->at(0).begin(), x->BCIDs->at(0).end(), bcid);
+    copy(x->BCIDs->begin(), x->BCIDs->end(), bcid);
 
     TGraphErrors* peak = new TGraphErrors(x->peak->size(),bcid,x->peak->data(),0,0);
     temp = "peak: " + number;
@@ -953,21 +999,26 @@ class AnalysisEngine{
     width->SetTitle(temp.c_str());
 
     TGraphErrors* chi2 = new TGraphErrors(x->chi2->size(),bcid,x->chi2->data(),0,0);
-    //chi2->GetYaxis()->SetRangeUser(0,500);
     temp = "chi2: " + number;
     chi2->SetTitle(temp.c_str());
+
+    TGraphErrors* capSigma = new TGraphErrors(x->capSigma->size(),bcid,x->capSigma->data(),0,0);
+    temp = "capSigma: " + number;
+    capSigma->SetTitle(temp.c_str());
 
 
 
     Stylize(peak,x->peak,true,2);
-    Stylize(mean,x->mean,false,2);
+    Stylize(mean,x->mean,false,1/2);
     Stylize(width,x->width,true,2);
-    Stylize(chi2,x->chi2,true,2);
+    Stylize(chi2,x->chi2,true,1/2);
+    Stylize(capSigma,x->capSigma, true, 1);
 
     frame.AddPlot(peak);
     frame.AddPlot(mean);
     frame.AddPlot(width);
     frame.AddPlot(chi2);
+    frame.AddPlot(capSigma);
 
 
 
@@ -1014,14 +1065,10 @@ class AnalysisEngine{
       param4->SetTitle(temp.c_str());
 
       TGraphErrors* fantomFitA = new TGraphErrors(x->fantomFitA->size(),bcid,x->fantomFitA->data(),0,0);
-      temp = "fantomFitA:" + number;
+      temp = "MeanDifference:" + number;
       fantomFitA->SetTitle(temp.c_str());
 
-      TGraphErrors* fantomFitB = new TGraphErrors(x->fantomFitB->size(),bcid,x->fantomFitB->data(),0,0);
-      temp = "fantomFitB:" + number;
-      fantomFitB->SetTitle(temp.c_str());
-      //fantomFitA->GetYaxis()->SetRangeUser(0,1);
-      //fantomFitB->GetYaxis()->SetRangeUser(0,1);
+
 
       Stylize(widthA,x->widthA,true,2);
       Stylize(widthB,x->widthB,true,2);
@@ -1031,18 +1078,16 @@ class AnalysisEngine{
       Stylize(param3,x->param3,true,2);
       Stylize(param4,x->param4,true,1);
       Stylize(TrackAreaRatio,x->trackBCID,true,1);
-      Stylize(fantomFitA,x->fantomFitA,false,4);
-      Stylize(fantomFitB,x->fantomFitB,false,4);
+      Stylize(fantomFitA,x->fantomFitA,true,1);
 
 
       frame.AddPlot(widthA);
-      frame.AddPlot(widthB);
-      frame.AddPlot(widthDifference);
+      //frame.AddPlot(widthB);
+      //frame.AddPlot(widthDifference);
       frame.AddPlot(widthRatio);
       //frame.AddPlot(areaRatio);
       //frame.AddPlot(TrackAreaRatio);
       frame.AddPlot(fantomFitA);
-      frame.AddPlot(fantomFitB);
       //frame.AddPlot(areaRatio);
       //frame.AddPlot(param3);
       //frame.AddPlot(param4);
@@ -1097,9 +1142,17 @@ class AnalysisEngine{
       LumPlotX->SetTitle(namex.c_str());
       function->Fit(LumPlotX);
       frame.AddPlot(LumPlotX);
-      xDesc.BCIDs = x.BCID;
 
-      Task(&xDesc,function,LumPlotX);
+
+      #ifdef FILTER
+        if(function->GetFunction()->GetChisquare() < 1000){
+
+          Task(&xDesc,function,LumPlotX,x.BCID->at(0).at(p));
+        }
+
+      #else
+        Task(&xDesc,function,LumPlotX,x.BCID->at(0).at(p));
+      #endif
 
 
 
@@ -1107,6 +1160,7 @@ class AnalysisEngine{
       CalculateSeperation(sep1,x1,y1,steps,function->GetFunction());
 
       TGraphErrors* LumPlotXSep = new TGraphErrors(steps,x1,sep1,0,0);
+      Stylize(LumPlotXSep,nullptr,false,2);
       frame.AddPlot(LumPlotXSep);
 
 
@@ -1115,26 +1169,43 @@ class AnalysisEngine{
 
 
 
+
+
+
+
+
       TGraphErrors* LumPlotY = new TGraphErrors(steps,x2,y2,0,e2);
-      string namey = "Y LumData" + to_string(x.BCID->at(0).at(p));
+      string namey = "Y LumData" + to_string(y.BCID->at(0).at(p));
       LumPlotY->SetTitle(namey.c_str());
 
       function->Fit(LumPlotY);
 
       frame.AddPlot(LumPlotY);
 
-      yDesc.BCIDs = y.BCID;
-      Task(&yDesc,function,LumPlotY);
+
+      #ifdef FILTER
+
+          if(function->GetFunction()->GetChisquare() < 1000){
+            cout<<function->GetFunction()->GetChisquare()<<endl;
+            Task(&yDesc,function,LumPlotY,y.BCID->at(0).at(p));
+          }
+
+        #else
+            Task(&yDesc,function,LumPlotY,y.BCID->at(0).at(p));
+      #endif
+
 
 
 
       CalculateSeperation(sep2,x2,y2,steps,function->GetFunction());
 
       TGraphErrors* LumPlotYSep = new TGraphErrors(steps,x2,sep2,0,0);
+      Stylize(LumPlotYSep,nullptr,false,2);
       frame.AddPlot(LumPlotYSep);
 
       frames.push_back(frame);
 
+      //cout <<"completed"<<endl;
 
     }
 
@@ -1159,7 +1230,7 @@ class AnalysisEngine{
 
 
     for (size_t i = 0; i < size; i++) {
-      sep[i] = -1*function->Eval(x[i]) + y[i];
+      sep[i] = (-1*function->Eval(x[i]) + y[i])/function->GetHistogram()->GetStdDev();
     }
 
 
